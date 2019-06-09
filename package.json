@@ -1,0 +1,27 @@
+{
+  "name": "pandora",
+  "author": "Sergey Pimenov",
+  "version": "1.0.0",
+  "license": "CC-BY-SA-4.0",
+  "description": "Responsive and Clean Admin Dashboard template built with Metro 4",
+  "keywords": [
+    "metro",
+    "metro4",
+    "html",
+    "css",
+    "js",
+    "mobile-first",
+    "responsive",
+    "front-end",
+    "template",
+    "web",
+    "admin",
+    "admin template",
+    "mobile"
+  ],
+  "homepage": "https://metroui.org.ua/thames/pandora",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/olton/Pandora.git"
+  }
+}
