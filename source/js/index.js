@@ -15,72 +15,97 @@ var statuses = {
     7: ['Shipped', 'bg-lightGreen fg-white']
 };
 
-var hash = location.hash;
-var target = hash.length > 0 ? hash.substr(1) : "dashboard";
-var link = $(".navview-menu a[href*="+target+"]");
-var menu = link.closest("ul[data-role=dropdown]");
-var node = link.parent("li").addClass("active");
+var shippingPanelButtons = [
+    {
+        html: "<span class='mif-cog'>",
+        cls: "bg-transparent",
+        onclick: "alert('You press shipping cog button')"
+    }
+];
+var billingPanelButtons = [
+    {
+        html: "<span class='mif-cog'>",
+        cls: "bg-transparent",
+        onclick: "alert('You press billing cog button')"
+    }
+];
+var customerPanelButtons = [
+    {
+        html: "<span class='mif-cog'>",
+        cls: "bg-transparent",
+        onclick: "alert('You press customer cog button')"
+    }
+];
 
-function getContent(target){
-    window.on_page_functions = [];
-    $.get(target + ".html").then(
-        function(response){
-            $("#content-wrapper").html(response);
+$(function(){
+    var hash = location.hash;
+    var target = hash.length > 0 ? hash.substr(1) : "dashboard";
+    var link = $(".navview-menu a[href*="+target+"]");
+    var menu = link.closest("ul[data-role=dropdown]");
+    var node = link.parent("li").addClass("active");
 
-            window.on_page_functions.forEach(function(func){
-                Metro.utils.exec(func, []);
-            });
+    function getContent(target){
+        window.on_page_functions = [];
+        $.get(target + ".html").then(
+            function(response){
+                $("#content-wrapper").html(response);
+
+                window.on_page_functions.forEach(function(func){
+                    Metro.utils.exec(func, []);
+                });
+            }
+        );
+    }
+
+    getContent(target);
+
+    if (menu.length > 0) {
+        Metro.getPlugin(menu, "dropdown").open();
+    }
+
+    $(".navview-menu").on(Metro.events.click, "a", function(e){
+        var href = $(this).attr("href");
+        var pane = $(this).closest(".navview-pane");
+        var hash;
+
+        if (Metro.utils.isValue(href) && href.indexOf(".html") > -1) {
+            document.location.href = href;
+            return false;
         }
-    );
-}
 
-getContent(target);
+        if (href === "#") {
+            return false;
+        }
 
-if (menu.length > 0) {
-    menu.data("dropdown").open();
-}
+        hash = href.substr(1);
+        href = hash + ".html";
 
-$(".navview-menu").on(Metro.events.click, "a", function(e){
-    var href = $(this).attr("href");
-    var pane = $(this).closest(".navview-pane");
-    var hash;
+        getContent(hash);
 
-    if (Metro.utils.isValue(href) && href.indexOf(".html") > -1) {
-        document.location.href = href;
+        if (pane.hasClass("open")) {
+            pane.removeClass("open");
+        }
+
+        pane.find("li").removeClass("active");
+        $(this).closest("li").addClass("active");
+
+        window.history.pushState(href, href, "index.html#"+hash);
+
         return false;
+    });
+
+    function updateOrderStatus(){
+        var val = $("#sel-statuses").val();
+        var table = $("#table-order-statuses").find("tbody");
+        var tr, td;
+
+        tr = $("<tr>");
+        td = $("<code>").addClass(statuses[val][1]).html(statuses[val][0]);
+
+        $("<td>").html(td).appendTo(tr);
+        $("<td>").addClass("text-right").html(""+(new Date()).format("%m/%d/%Y %H:%M")).appendTo(tr);
+
+        table.prepend(tr);
     }
-
-    if (href === "#") {
-        return false;
-    }
-
-    hash = href.substr(1);
-    href = hash + ".html";
-
-    getContent(hash);
-
-    if (pane.hasClass("open")) {
-        pane.removeClass("open");
-    }
-
-    pane.find("li").removeClass("active");
-    $(this).closest("li").addClass("active");
-
-    window.history.pushState(href, href, "index.html#"+hash);
-
-    return false;
 });
 
-function updateOrderStatus(){
-    var val = $("#sel-statuses").val();
-    var table = $("#table-order-statuses").find("tbody");
-    var tr, td;
-
-    tr = $("<tr>");
-    td = $("<code>").addClass(statuses[val][1]).html(statuses[val][0]);
-
-    $("<td>").html(td).appendTo(tr);
-    $("<td>").addClass("text-right").html(""+(new Date()).format("%m/%d/%Y %H:%M")).appendTo(tr);
-
-    table.prepend(tr);
-}

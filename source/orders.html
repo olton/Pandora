@@ -1,9 +1,9 @@
 <div class="row border-bottom bd-lightGray m-3">
-    <div class="cell-md-4 text-center text-left-md">
-        <h3 class="dashboard-section-title">Orders <small>e-commerce</small></h3>
+    <div class="cell-md-4 d-flex flex-align-center">
+        <h3 class="dashboard-section-title text-center text-left-md w-100">Orders <small>e-commerce</small></h3>
     </div>
 
-    <div class="cell-md-8 d-flex flex-justify-center flex-justify-end-md">
+    <div class="cell-md-8 d-flex flex-justify-center flex-justify-end-md flex-align-center">
         <ul class="breadcrumbs bg-transparent">
             <li class="page-item"><a href="#" class="page-link"><span class="mif-meter"></span></a></li>
             <li class="page-item"><a href="#" class="page-link">E-Commerce</a></li>
@@ -22,6 +22,14 @@
                 if (head.name === 'status') {
                     var span = $("<code>").html(statuses[value][0]).addClass(statuses[value][1]);
                     $(td).html(span);
+                }
+                if (head.name === 'total') {
+                    var _value = parseInt(value.replace(/\$/g, ""));
+                    var pb = Metro.makePlugin($("<div>"), "progress", {
+                        value: _value,
+                        clsBar: _value < 10 ? "bg-red" : _value < 20 ? "bg-orange" : _value <= 50 ? "bg-cyan" : _value < 70 ? "bg-cobalt" : "bg-green"
+                    });
+                    $(td).html("").append(value).append(pb);
                 }
             }
 

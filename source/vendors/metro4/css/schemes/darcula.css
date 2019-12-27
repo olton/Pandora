@@ -1,6 +1,7 @@
 /*
- * Metro 4 Components Library v4.2.46  (https://metroui.org.ua)
+ * Metro 4 Components Library v4.3.5  (https://metroui.org.ua)
  * Copyright 2012-2019 Sergey Pimenov
+ * Built at 24/12/2019 18:04:54
  * Licensed under MIT
  */
 .bg-scheme {
@@ -147,6 +148,7 @@ textarea.focused,
   border-color: #585b5d;
   background-color: #585b5d;
   -webkit-transition: all 0.3s ease-in-out;
+  -o-transition: all 0.3s ease-in-out;
   transition: all 0.3s ease-in-out;
 }
 .checkbox input[type=checkbox]:checked ~ .check::before {
@@ -697,6 +699,10 @@ textarea.focused,
 }
 .table tfoot {
   border-top-color: #585b5d;
+  border-bottom-color: #585b5d;
+}
+.table tfoot th {
+  color: #ffffff;
 }
 .table .sortable-column.sort-asc,
 .table .sortable-column.sort-desc {
