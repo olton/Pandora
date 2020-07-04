@@ -152,6 +152,12 @@ body {
     width: 480px;
   }
 }
+.navview-pane ::-webkit-scrollbar-track {
+  background-color: #4b646f !important;
+}
+.navview-pane * {
+  scrollbar-color: #1ba1e2 #4b646f !important;
+}
 .product-list {
   margin: 10px 0 0;
   padding: 24px;
