@@ -28,6 +28,9 @@ for different types of business projects.
 <a href="https://www.patreon.com/metroui">
 	<img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
 </a>
+<a href="https://www.buymeacoffee.com/pimenov">
+	<img src="https://metroui.org.ua/images/buy-me-coffee2.png" height="38">
+</a>
 
 </p>
 
