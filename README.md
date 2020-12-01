@@ -36,7 +36,7 @@ for different types of business projects.
 
 <hr>
 
-- [x] [Pandora Demo](https://metroui.org.ua/themes/pandora/)
+- [x] [Pandora Demo](https://themes.org.ua/pandora/)
 - [x] [Metro 4 Official site](https://metroui.org.ua/) 
 
 <hr>
