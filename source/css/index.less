@@ -39,7 +39,7 @@ body {
         }
 
         .dropdown-toggle::after {
-            border-bottom-color: white;
+            border-bottom-color: white!important;
         }
 
         .item-header {
@@ -99,6 +99,16 @@ body {
         height: 32px;
         border-radius: 50%;
         overflow: hidden;
+    }
+}
+
+.navview-pane {
+    ::-webkit-scrollbar-track {
+        background-color: #4b646f!important;
+    }
+
+    * {
+        scrollbar-color: #1ba1e2 #4b646f!important;
     }
 }
 
@@ -196,16 +206,6 @@ body {
 
     .page-error-box {
         width: 480px;
-    }
-}
-
-.navview-pane {
-    ::-webkit-scrollbar-track {
-        background-color: #4b646f!important;
-    }
-
-    * {
-        scrollbar-color: #1ba1e2 #4b646f!important;
     }
 }
 

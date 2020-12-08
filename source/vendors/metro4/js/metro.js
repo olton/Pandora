@@ -1,7 +1,7 @@
 /*
- * Metro 4 Components Library v4.3.10  (https://metroui.org.ua)
+ * Metro 4 Components Library v4.4.3  (https://metroui.org.ua)
  * Copyright 2012-2020 Sergey Pimenov
- * Built at 04/07/2020 11:00:58
+ * Built at 08/12/2020 18:30:54
  * Licensed under MIT
  */
 (function (global, undefined) {
@@ -14,7 +14,7 @@
 // Source: src/func.js
 
 /* global dataSet */
-/* exported isSimple, isHidden, isPlainObject, isEmptyObject, isArrayLike, str2arr, parseUnit, getUnit, setStyleProp, acceptData, dataAttr, normName, strip, dashedName */
+/* exported isTouch, isSimple, isHidden, isPlainObject, isEmptyObject, isArrayLike, str2arr, parseUnit, getUnit, setStyleProp, acceptData, dataAttr, normName, strip, dashedName, isLocalhost */
 
 var numProps = ['opacity', 'zIndex'];
 
@@ -139,6 +139,23 @@ function strip(name, what) {
 
 function hasProp(obj, prop){
     return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+function isLocalhost(host){
+    var hostname = host || window.location.hostname;
+    return (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "[::1]" ||
+        hostname === "" ||
+        hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/) !== null
+    );
+}
+
+function isTouch() {
+    return (('ontouchstart' in window)
+        || (navigator.maxTouchPoints > 0)
+        || (navigator.msMaxTouchPoints > 0));
 }
 
 // Source: src/setimmediate.js
@@ -603,7 +620,7 @@ function hasProp(obj, prop){
 
 /* global hasProp */
 
-var m4qVersion = "v1.0.7. Built at 16/06/2020 10:44:43";
+var m4qVersion = "v1.0.10. Built at 08/12/2020 00:01:48";
 
 /* eslint-disable-next-line */
 var matches = Element.prototype.matches
@@ -939,7 +956,10 @@ $.fn.extend({
         } else {
             this.each(function () {
                 var el = this;
-                if (typeof el.querySelectorAll !== "undefined") res = res.concat([].slice.call(el.querySelectorAll(s)));
+                if (typeof el.querySelectorAll === "undefined") {
+                    return ;
+                }
+                res = res.concat([].slice.call(el.querySelectorAll(s)));
             });
             result = $.merge($(), res);
         }
@@ -1538,9 +1558,15 @@ $.fn.extend({
 
 // Source: src/utils.js
 
-/* global $, not, camelCase, dashedName, isPlainObject, isEmptyObject, isArrayLike, acceptData, parseUnit, getUnit, isVisible, isHidden, matches, strip, normName, hasProp */
+/* global $, not, camelCase, dashedName, isPlainObject, isEmptyObject, isArrayLike, acceptData, parseUnit, getUnit, isVisible, isHidden, matches, strip, normName, hasProp, isLocalhost, isTouch */
 
 $.extend({
+
+    device: (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())),
+    localhost: isLocalhost(),
+    isLocalhost: isLocalhost,
+    touchable: isTouch(),
+
     uniqueId: function (prefix) {
         var d = new Date().getTime();
         if (not(prefix)) {
@@ -1596,14 +1622,11 @@ $.extend({
     },
 
     isSelector: function(selector){
-        if (typeof(selector) !== 'string') {
-            return false;
-        }
-        if (selector.indexOf("<") !== -1) {
+        if (typeof selector !== 'string') {
             return false;
         }
         try {
-            $(selector);
+            document.querySelector(selector);
         } catch(error) {
             return false;
         }
@@ -1614,18 +1637,18 @@ $.extend({
         return $(s).remove();
     },
 
-    camelCase: function(string){return camelCase(string);},
-    dashedName: function(str){return dashedName(str);},
-    isPlainObject: function(obj){return isPlainObject(obj);},
-    isEmptyObject: function(obj){return isEmptyObject(obj);},
-    isArrayLike: function(obj){return isArrayLike(obj);},
-    acceptData: function(owner){return acceptData(owner);},
-    not: function(val){return not(val);},
-    parseUnit: function(str, out){return parseUnit(str, out);},
-    getUnit: function(str, und){return getUnit(str, und);},
-    unit: function(str, out){return parseUnit(str, out);},
-    isVisible: function(elem) {return isVisible(elem);},
-    isHidden: function(elem) {return isHidden(elem);},
+    camelCase: camelCase,
+    dashedName: dashedName,
+    isPlainObject: isPlainObject,
+    isEmptyObject: isEmptyObject,
+    isArrayLike: isArrayLike,
+    acceptData: acceptData,
+    not: not,
+    parseUnit: parseUnit,
+    getUnit: getUnit,
+    unit: parseUnit,
+    isVisible: isVisible,
+    isHidden: isHidden,
     matches: function(el, s) {return matches.call(el, s);},
     random: function(from, to) {
         if (arguments.length === 1 && isArrayLike(from)) {
@@ -1633,9 +1656,9 @@ $.extend({
         }
         return Math.floor(Math.random()*(to-from+1)+from);
     },
-    strip: function(val, what){return strip(val, what);},
-    normName: function(val){return normName(val);},
-    hasProp: function(obj, prop){return hasProp(obj, prop);},
+    strip: strip,
+    normName: normName,
+    hasProp: hasProp,
 
     serializeToArray: function(form){
         var _form = $(form)[0];
@@ -2387,9 +2410,9 @@ $.fn.extend({
 
 // Source: src/parser.js
 
-/* global $, isPlainObject, hasProp */
+/* global $ */
 
-$.parseHTML = function(data, context){
+$.parseHTML = function(data){
     var base, singleTag, result = [], ctx, _context;
     var regexpSingleTag = /^<([a-z][^\/\0>:\x20\t\r\n\f]*)[\x20\t\r\n\f]*\/?>(?:<\/\1>|)$/i; // eslint-disable-line
 
@@ -2414,16 +2437,6 @@ $.parseHTML = function(data, context){
         for(var i = 0; i < _context.childNodes.length; i++) {
             result.push(_context.childNodes[i]);
         }
-    }
-
-    if (context && !(context instanceof $) && isPlainObject(context)) {
-        $.each(result,function(){
-            var el = this;
-            for(var name in context) {
-                if (hasProp(context, name))
-                    el.setAttribute(name, context[name]);
-            }
-        });
     }
 
     return result;
@@ -2666,7 +2679,7 @@ $.fn.extend({
             return attributes;
         }
 
-        if (typeof name === 'string' && val === undefined) {
+        if (arguments.length === 1 && typeof name === "string") {
             return this.length && this[0].nodeType === 1 && this[0].hasAttribute(name) ? this[0].getAttribute(name) : undefined;
         }
 
@@ -2792,11 +2805,12 @@ $.extend({
             if (hasProp(item, where)) {
                 return;
             }
+
             Object.defineProperty(item, where, {
                 configurable: true,
                 enumerable: true,
                 writable: true,
-                value: function prepend() {
+                value: function () {
                     var argArr = Array.prototype.slice.call(arguments),
                         docFrag = document.createDocumentFragment();
 
@@ -2817,6 +2831,7 @@ $.extend({
 
 var normalizeElements = function(s){
     var result;
+
     if (typeof s === "string") result = $.isSelector(s) ? $(s) : $.parseHTML(s);
     else if (s instanceof HTMLElement) result = [s];
     else if (isArrayLike(s)) result = s;
@@ -2824,6 +2839,19 @@ var normalizeElements = function(s){
 };
 
 $.fn.extend({
+
+    appendText: function(text){
+        return this.each(function(elIndex, el){
+            el.innerHTML += text;
+        });
+    },
+
+    prependText: function(text){
+        return this.each(function(elIndex, el){
+            el.innerHTML = text + el.innerHTML;
+        });
+    },
+
     append: function(elements){
         var _elements = normalizeElements(elements);
 
@@ -3075,7 +3103,7 @@ $.fn.extend({
 
 // Source: src/animation.js
 
-/* global $, not, camelCase, parseUnit, Promise, getUnit */
+/* global $, not, camelCase, parseUnit, Promise, getUnit, matches */
 
 $.extend({
     animation: {
@@ -3481,7 +3509,7 @@ Object.keys(eases).forEach(function(name) {
     };
 });
 
-var defaultProps = {
+var defaultAnimationProps = {
     id: null,
     el: null,
     draw: {},
@@ -3491,15 +3519,24 @@ var defaultProps = {
     pause: 0,
     dir: "normal",
     defer: 0,
+    onStart: function(){},
+    onStop: function(){},
+    onStopAll: function(){},
+    onPause: function(){},
+    onPauseAll: function(){},
+    onResume: function(){},
+    onResumeAll: function(){},
     onFrame: function(){},
     onDone: function(){}
 };
 
 function animate(args){
     return new Promise(function(resolve){
-        var that = this, start;
-        var props = $.assign({}, defaultProps, args);
-        var id = props.id, el = props.el, draw = props.draw, dur = props.dur, ease = props.ease, loop = props.loop, onFrame = props.onFrame, onDone = props.onDone, pause = props.pause, dir = props.dir, defer = props.defer;
+        var that = this;
+        var props = $.assign({}, defaultAnimationProps, {dur: $.animation.duration, ease: $.animation.ease}, args);
+        var id = props.id, el = props.el, draw = props.draw, dur = props.dur, ease = props.ease, loop = props.loop,
+            onStart = props.onStart, onFrame = props.onFrame, onDone = props.onDone,
+            pauseStart = props.pause, dir = props.dir, defer = props.defer;
         var map = {};
         var easeName = "linear", easeArgs = [], easeFn = Easing.linear, matchArgs;
         var direction = dir === "alternate" ? "normal" : dir;
@@ -3542,15 +3579,25 @@ function animate(args){
             id: null,
             stop: 0,
             pause: 0,
-            loop: 0
+            loop: 0,
+            t: -1,
+            started: 0,
+            paused: 0
         };
 
         var play = function() {
             if (typeof draw === "object") {
                 map = createAnimationMap(el, draw, direction);
             }
-            start = performance.now();
+
+            if (typeof onStart === "function") {
+                onStart.apply(el);
+            }
+
+            // start = performance.now();
             $.animation.elements[animationID].loop += 1;
+            $.animation.elements[animationID].started = performance.now();
+            $.animation.elements[animationID].duration = dur;
             $.animation.elements[animationID].id = requestAnimationFrame(animate);
         };
 
@@ -3568,38 +3615,46 @@ function animate(args){
         var animate = function(time) {
             var p, t;
             var stop = $.animation.elements[animationID].stop;
+            var pause = $.animation.elements[animationID].pause;
+            var start = $.animation.elements[animationID].started;
 
-            if ( stop > 0) {
-                if (stop === 2) {
-                    if (typeof draw === "function") {
-
-                        draw.bind(el)(1, 1);
-
-                    } else {
-
-                        applyProps(el, map, 1);
-
-                    }
-                }
-                done();
-                return;
+            if ($.animation.elements[animationID].paused) {
+                start = time - $.animation.elements[animationID].t * dur;
+                $.animation.elements[animationID].started = start;
             }
 
-            t = (time - start) / dur;
+            t = ((time - start) / dur).toFixed(4);
 
             if (t > 1) t = 1;
             if (t < 0) t = 0;
 
             p = easeFn.apply(null, easeArgs)(t);
 
+            $.animation.elements[animationID].t = t;
+            $.animation.elements[animationID].p = p;
+
+            if (pause) {
+                $.animation.elements[animationID].id = requestAnimationFrame(animate);
+                // $.animation.elements[animationID].started = performance.now();
+                return;
+            }
+
+            if ( stop > 0) {
+                if (stop === 2) {
+                    if (typeof draw === "function") {
+                        draw.bind(el)(1, 1);
+                    } else {
+                        applyProps(el, map, 1);
+                    }
+                }
+                done();
+                return;
+            }
+
             if (typeof draw === "function") {
-
                 draw.bind(el)(t, p);
-
             } else {
-
                 applyProps(el, map, p);
-
             }
 
             if (typeof onFrame === 'function') {
@@ -3619,12 +3674,12 @@ function animate(args){
                     if (typeof loop === "boolean") {
                         setTimeout(function () {
                             play();
-                        }, pause);
+                        }, pauseStart);
                     } else {
                         if (loop > $.animation.elements[animationID].loop) {
                             setTimeout(function () {
                                 play();
-                            }, pause);
+                            }, pauseStart);
                         } else {
                             done();
                         }
@@ -3650,17 +3705,128 @@ function animate(args){
     });
 }
 
-/* eslint-disable */
-function stop(id, done){
+// Stop animation
+function stopAnimation(id, done){
+    var an = $.animation.elements[id];
+
+    if (typeof an === "undefined") {
+        return ;
+    }
+
     if (not(done)) {
         done = true;
     }
-    $.animation.elements[id].stop = done === true ? 2 : 1;
+
+    an.stop = done === true ? 2 : 1;
+
+    if (typeof an.onStop === "function") {
+        an.onStop.apply(an.element);
+    }
 }
+
+function stopAnimationAll(done, filter){
+    $.each($.animation.elements, function(k, v){
+        if (filter) {
+            if (typeof filter === "string") {
+                if (matches.call(v.element, filter)) stopAnimation(k, done);
+            } else if (filter.length) {
+                $.each(filter, function(){
+                    if (v.element === this) stopAnimation(k, done);
+                });
+            } else if (filter instanceof Element) {
+                if (v.element === filter) stopAnimation(k, done);
+            }
+        } else {
+            stopAnimation(k, done);
+        }
+    });
+}
+// end of stop
+
+// Pause and resume animation
+function pauseAnimation(id){
+    var an = $.animation.elements[id];
+
+    if (typeof an === "undefined") {
+        return ;
+    }
+
+    an.pause = 1;
+    an.paused = performance.now();
+
+    if (typeof an.onPause === "function") {
+        an.onPause.apply(an.element);
+    }
+}
+
+function pauseAnimationAll(filter){
+    $.each($.animation.elements, function(k, v){
+        if (filter) {
+            if (typeof filter === "string") {
+                if (matches.call(v.element, filter)) pauseAnimation(k);
+            } else if (filter.length) {
+                $.each(filter, function(){
+                    if (v.element === this) pauseAnimation(k);
+                });
+            } else if (filter instanceof Element) {
+                if (v.element === filter) pauseAnimation(k);
+            }
+        } else {
+            pauseAnimation(k);
+        }
+    });
+}
+// end of pause
+
+function resumeAnimation(id){
+    var an = $.animation.elements[id];
+
+    if (typeof an === "undefined") {
+        return ;
+    }
+
+    an.pause = 0;
+    an.paused = 0;
+
+    if (typeof an.onResume === "function") {
+        an.onResume.apply(an.element);
+    }
+}
+
+function resumeAnimationAll(filter){
+    $.each($.animation.elements, function(k, v){
+        if (filter) {
+            if (typeof filter === "string") {
+                if (matches.call(v.element, filter)) resumeAnimation(k);
+            } else if (filter.length) {
+                $.each(filter, function(){
+                    if (v.element === this) resumeAnimation(k);
+                });
+            } else if (filter instanceof Element) {
+                if (v.element === filter) resumeAnimation(k);
+            }
+        } else {
+            resumeAnimation(k);
+        }
+    });
+}
+
 /* eslint-enable */
 
-function chain(arr, loop){
-    if (not(loop)) loop = false;
+var defaultChainOptions = {
+    loop: false,
+    onChainItem: null,
+    onChainItemComplete: null,
+    onChainComplete: null
+}
+
+function chain(arr, opt){
+    var o = $.extend({}, defaultChainOptions, opt);
+
+    if (typeof o.loop !== "boolean") {
+        o.loop--;
+    }
+
     if (!Array.isArray(arr)) {
         console.warn("Chain array is not defined!");
         return false;
@@ -3668,18 +3834,24 @@ function chain(arr, loop){
 
     var reducer = function(acc, item){
         return acc.then(function(){
-            return animate(item);
+            if (typeof o["onChainItem"] === "function") {
+                o["onChainItem"](item);
+            }
+            return animate(item).then(function(){
+                if (typeof o["onChainItemComplete"] === "function") {
+                    o["onChainItemComplete"](item);
+                }
+            });
         });
     };
 
     arr.reduce(reducer, Promise.resolve()).then(function(){
-        if (loop) {
-            if (typeof loop === "boolean") {
-                chain(arr, loop);
-            } else {
-                loop--;
-                chain(arr, loop);
-            }
+        if (typeof o["onChainComplete"] === "function") {
+            o["onChainComplete"]();
+        }
+
+        if (o.loop) {
+            chain(arr, o);
         }
     });
 }
@@ -3721,8 +3893,13 @@ $.extend({
 
         return animate(args);
     },
-    stop: stop,
-    chain: chain
+    chain: chain,
+    stop: stopAnimation,
+    stopAll: stopAnimationAll,
+    resume: resumeAnimation,
+    resumeAll: resumeAnimationAll,
+    pause: pauseAnimation,
+    pauseAll: pauseAnimationAll
 });
 
 $.fn.extend({
@@ -3812,12 +3989,33 @@ $.fn.extend({
      * @returns {this}
      */
     stop: function(done){
-        var elements = $.animation.elements;
         return this.each(function(){
             var el = this;
-            $.each(elements, function(k, o){
+            $.each($.animation.elements, function(k, o){
                 if (o.element === el) {
-                    stop(k, done);
+                    stopAnimation(k, done);
+                }
+            });
+        });
+    },
+
+    pause: function(){
+        return this.each(function(){
+            var el = this;
+            $.each($.animation.elements, function(k, o){
+                if (o.element === el) {
+                    pauseAnimation(k);
+                }
+            });
+        });
+    },
+
+    resume: function(){
+        return this.each(function(){
+            var el = this;
+            $.each($.animation.elements, function(k, o){
+                if (o.element === el) {
+                    resumeAnimation(k);
                 }
             });
         });
@@ -3855,14 +4053,14 @@ $.extend({
     hide: function(el, cb){
         var $el = $(el);
 
-        if (el.style.display) {
-            $el.origin('display', (el.style.display ? el.style.display : getComputedStyle(el, null).display));
-        }
+        $el.origin('display', (el.style.display ? el.style.display : getComputedStyle(el, null).display));
         el.style.display = 'none';
+
         if (typeof cb === "function") {
             $.bind(cb, el);
             cb.call(el, arguments);
         }
+
         return this;
     },
 
@@ -4253,10 +4451,15 @@ $.fn.extend({
 
 // Source: src/init.js
 
-/* global $, isArrayLike */
+/* global $, isArrayLike, isPlainObject, hasProp, str2arr */
 
 $.init = function(sel, ctx){
-    var parsed, r;
+    var parsed;
+    var that = this;
+
+    if (typeof sel === "string") {
+        sel = sel.trim();
+    }
 
     this.uid = $.uniqueId();
 
@@ -4268,76 +4471,86 @@ $.init = function(sel, ctx){
         return $.ready(sel);
     }
 
-    if (typeof sel === 'string' && sel === "document") {
-        sel = document;
-    }
-
-    if (typeof sel === 'string' && sel === "body") {
-        sel = document.body;
-    }
-
-    if (typeof sel === 'string' && sel === "html") {
-        sel = document.documentElement;
-    }
-
-    if (typeof sel === 'string' && sel === "doctype") {
-        sel = document.doctype;
-    }
-
-    if (sel && (sel.nodeType || sel.self === window)) {
-        this[0] = sel;
-        this.length = 1;
+    if (sel instanceof Element) {
+        this.push(sel);
         return this;
     }
 
     if (sel instanceof $) {
-        r = $();
         $.each(sel, function(){
-            r.push(this);
+            that.push(this);
         });
-        return r;
+        return this;
+    }
+
+    if (sel === "window") sel = window;
+    if (sel === "document") sel = document;
+    if (sel === "body") sel = document.body;
+    if (sel === "html") sel = document.documentElement;
+    if (sel === "doctype") sel = document.doctype;
+    if (sel && (sel.nodeType || sel.self === window)) {
+        this.push(sel);
+        return this;
     }
 
     if (isArrayLike(sel)) {
-        r = $();
         $.each(sel, function(){
             $(this).each(function(){
-                r.push(this);
+                that.push(this);
             });
         });
-        return r;
+        return this;
     }
 
-    if (typeof sel === "object") {
-        return sel;
+    if (typeof sel !== "string" && (sel.self && sel.self !== window)) {
+        return this;
     }
 
-    if (typeof sel === "string") {
+    if (sel === "#" || sel === ".") {
+        console.error("Selector can't be # or .") ;
+        return this;
+    }
 
-        sel = sel.trim();
+    if (sel[0] === "@") {
 
-        if (sel === "#" || sel === ".") {
-            console.warn("Selector can't be # or .") ;
-            return this;
-        }
+        $("[data-role]").each(function(){
+            var roles = str2arr($(this).attr("data-role"), ",");
+            if (roles.indexOf(sel.slice(1)) > -1) {
+                that.push(this);
+            }
+        });
 
-        parsed = $.parseHTML(sel, ctx);
+    } else {
+
+        parsed = $.parseHTML(sel);
 
         if (parsed.length === 1 && parsed[0].nodeType === 3) { // Must be a text node -> css sel
-            [].push.apply(this, document.querySelectorAll(sel));
+            try {
+                [].push.apply(this, document.querySelectorAll(sel));
+            } catch (e) {
+                //console.error(sel + " is not a valid selector");
+            }
         } else {
             $.merge(this, parsed);
         }
     }
 
     if (ctx !== undefined) {
-        var that = this;
         if (ctx instanceof $) {
             this.each(function () {
                 $(ctx).append(that);
             });
         } else if (ctx instanceof HTMLElement) {
             $(ctx).append(that);
+        } else {
+            if (isPlainObject(ctx)) {
+                $.each(this,function(){
+                    for(var name in ctx) {
+                        if (hasProp(ctx, name))
+                            this.setAttribute(name, ctx[name]);
+                    }
+                });
+            }
         }
     }
 
@@ -4392,6 +4605,11 @@ $.noConflict = function() {
     var meta_cloak = $.meta('metro4:cloak').attr("content");
     var meta_cloak_duration = $.meta('metro4:cloak_duration').attr("content");
     var meta_global_common = $.meta('metro4:global_common').attr("content");
+    var meta_blur_image = $.meta('metro4:blur_image').attr("content");
+
+    if (window.METRO_BLUR_IMAGE === undefined) {
+        window.METRO_BLUR_IMAGE = meta_blur_image !== undefined ? JSON.parse(meta_global_common) : false;
+    }
 
     if (window.METRO_GLOBAL_COMMON === undefined) {
         window.METRO_GLOBAL_COMMON = meta_global_common !== undefined ? JSON.parse(meta_global_common) : false;
@@ -4492,12 +4710,13 @@ $.noConflict = function() {
 
     var Metro = {
 
-        version: "4.3.10",
-        compileTime: "04/07/2020 11:01:12",
-        buildNumber: "749",
+        version: "4.4.3",
+        compileTime: "08/12/2020 18:30:54",
+        buildNumber: "@@build",
         isTouchable: isTouch,
         fullScreenEnabled: document.fullscreenEnabled,
         sheet: null,
+
 
         controlsPosition: {
             INSIDE: "inside",
@@ -4664,6 +4883,7 @@ $.noConflict = function() {
         animations: null,
         cookie: null,
         template: null,
+        defaults: {},
 
         about: function(){
             var content =
@@ -4774,6 +4994,10 @@ $.noConflict = function() {
             var html = $("html");
             var that = this;
 
+            if (window.METRO_BLUR_IMAGE) {
+                html.addClass("use-blur-image");
+            }
+
             if (window.METRO_SHOW_ABOUT) Metro.info(true);
 
             if (isTouch === true) {
@@ -4783,6 +5007,8 @@ $.noConflict = function() {
             }
 
             Metro.sheet = this.utils.newCssSheet();
+
+            this.utils.addCssRule(Metro.sheet, "*, *::before, *::after", "box-sizing: border-box;");
 
             window.METRO_MEDIA = [];
             $.each(Metro.media_queries, function(key, query){
@@ -4841,8 +5067,13 @@ $.noConflict = function() {
             var that = this;
 
             $.each(widgets, function () {
-                var $this = $(this);
-                var roles = $this.data('role').split(/\s*,\s*/);
+                var $this = $(this), roles;
+
+                if (!this.hasAttribute("data-role")) {
+                    return ;
+                }
+
+                roles = $this.attr('data-role').split(/\s*,\s*/);
 
                 roles.map(function (func) {
 
@@ -4896,6 +5127,11 @@ $.noConflict = function() {
             if (window.useJQuery) {
                 register(jQuery);
             }
+        },
+
+        pluginExists: function(name){
+            var $ = window.useJQuery ? jQuery : m4q;
+            return typeof $.fn[normalizeComponentName(name)] === "function";
         },
 
         destroyPlugin: function(element, name){
@@ -4979,6 +5215,10 @@ $.noConflict = function() {
             return Metro.$()($(el)[0]);
         },
 
+        get$elements: function(el){
+            return Metro.$()($(el));
+        },
+
         getPlugin: function(el, name){
             var _name = normalizeComponentName(name);
             var $el = Metro.get$el(el);
@@ -4987,7 +5227,7 @@ $.noConflict = function() {
 
         makePlugin: function(el, name, options){
             var _name = normalizeComponentName(name);
-            var $el = Metro.get$el(el);
+            var $el = Metro.get$elements(el);
             return $el.length && typeof $el[_name] === "function" ? $el[_name](options) : undefined;
         },
 
@@ -5001,6 +5241,7 @@ $.noConflict = function() {
                     this.elem = el;
                     this.element = $(el);
                     this.options = $.extend( {}, defaults, options );
+                    this.component = this.elem;
 
                     this._setOptionsFromDOM();
                     this._runtime();
@@ -5030,9 +5271,19 @@ $.noConflict = function() {
 
                 _runtime: function(){
                     var element = this.element, mc;
+                    var roles = (element.attr("data-role") || "").toArray(",").map(function(v){
+                        return normalizeComponentName(v);
+                    }).filter(function(v){
+                        return v.trim() !== "";
+                    });
+
                     if (!element.attr('data-role-'+this.name)) {
                         element.attr("data-role-"+this.name, true);
-                        element.attr("data-role", this.name);
+                        if (roles.indexOf(this.name) === -1) {
+                            roles.push(this.name);
+                            element.attr("data-role", roles.join(","));
+                        }
+
                         mc = element.data('metroComponent');
                         if (mc === undefined) {
                             mc = [this.name];
@@ -5075,6 +5326,42 @@ $.noConflict = function() {
                         element.fire(event.toLowerCase(), data);
 
                     return Utils.exec(o["on"+event], _data, element[0]);
+                },
+
+                _fireEvents: function(events, data, log, noFire){
+                    var that = this, _events;
+
+                    if (arguments.length === 0) {
+                        return ;
+                    }
+
+                    if (arguments.length === 1) {
+
+                        $.each(events, function () {
+                            var ev = this;
+                            that._fireEvent(ev.name, ev.data, ev.log, ev.noFire);
+                        });
+
+                        return Utils.objectLength(events);
+                    }
+
+                    if (!Array.isArray(events) && typeof events !== "string") {
+                        return ;
+                    }
+
+                    _events = Array.isArray(events) ? events : events.toArray(",");
+
+                    $.each(_events, function(){
+                        that._fireEvent(this, data, log, noFire);
+                    });
+                },
+
+                getComponent: function(){
+                    return this.component;
+                },
+
+                getComponentName: function(){
+                    return this.name;
                 }
             }, compObj);
 
@@ -5105,47 +5392,6 @@ $.noConflict = function() {
 
 }));
 
-
-(function(Metro, $) {
-    $.extend(Metro.locales, {
-        'cn-ZH': {
-            "calendar": {
-                "months": [
-                    "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月",
-                    "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"
-                ],
-                "days": [
-                    "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六",
-                    "日", "一", "二", "三", "四", "五", "六",
-                    "周日", "周一", "周二", "周三", "周四", "周五", "周六"
-                ],
-                "time": {
-                    "days": "天",
-                    "hours": "时",
-                    "minutes": "分",
-                    "seconds": "秒",
-                    "month": "月",
-                    "day": "日",
-                    "year": "年"
-                }
-            },
-            "buttons": {
-                "ok": "确认",
-                "cancel": "取消",
-                "done": "完成",
-                "today": "今天",
-                "now": "现在",
-                "clear": "清除",
-                "help": "帮助",
-                "yes": "是",
-                "no": "否",
-                "random": "随机",
-                "save": "保存",
-                "reset": "重啟"
-            }
-        }
-    });
-}(Metro, m4q));
 
 (function(Metro, $) {
     $.extend(Metro['locales'], {
@@ -5183,6 +5429,21 @@ $.noConflict = function() {
                 "random": "Tilfældig",
                 "save": "Gem",
                 "reset": "Nulstil"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5221,6 +5482,21 @@ $.noConflict = function() {
                 "random": "Zufällig",
                 "save": "Speichern",
                 "reset": "Zurücksetzen"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5262,6 +5538,21 @@ $.noConflict = function() {
                 "random": "Random",
                 "save": "Save",
                 "reset": "Reset"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5303,6 +5594,21 @@ $.noConflict = function() {
                 "random": "Aleatorio",
                 "save": "Salvar",
                 "reset": "Reiniciar"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5344,10 +5650,82 @@ $.noConflict = function() {
                 "random": "Aléatoire",
                 "save": "Sauvegarder",
                 "reset": "Réinitialiser"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
 }(Metro, m4q));
+
+(function(Metro, $) {
+    $.extend(Metro.locales, {
+        'hr-HR': {
+            "calendar": {
+                "months": [
+                    "Siječanj", "Veljača", "Ožujak", "Travanj", "Svibanj", "Lipanj", "Srpanj", "Kolovoz", "Rujan", "Listopad", "Studeni", "Prosinac",
+                    "Sij", "Velj", "Ožu", "Tra", "Svi", "Lip", "Srp", "Kol", "Ruj", "Lis", "Stu", "Pro"
+                ],
+                "days": [
+                    "Nedjelja","Ponedjeljak","Utorak", "Srijeda", "Četvrtak", "Petak", "Subota",  
+                    "Ne","Po", "Ut", "Sr", "Če", "Pe", "Su", 
+                    "Ned", "Pon", "Uto", "Sri", "Čet", "Pet", "Sub" 
+                ],
+                "time": {
+                    "days": "DANI",
+                    "hours": "SATI",
+                    "minutes": "MINUTE",
+                    "seconds": "SEKUNDE",
+                    "month": "MJESEC",
+                    "day": "DAN",
+                    "year": "GODINA"
+                }
+            },
+            "buttons": {
+                "ok": "OK",
+                "cancel": "Otkaži",
+                "done": "Gotovo",
+                "today": "Danas",
+                "now": "Sada",
+                "clear": "Izbriši",
+                "help": "Pomoć",
+                "yes": "Da",
+                "no": "Ne",
+                "random": "Nasumično",
+                "save": "Spremi",
+                "reset": "Reset"
+            },
+            "table": {
+                "rowsCount": "Broj redaka:",
+                "search": "Pretraga:",
+                "info": "Prikazujem $1 do $2 od $3",
+                "prev": "Nazad",
+                "next": "Naprijed",
+                "all": "Sve",
+                "inspector": "Inspektor",
+                "skip": "Idi na stranicu",
+                "empty": "Prazno"
+            },
+            "colorSelector": {
+                addUserColorButton: "Dodaj uzorcima",
+                userColorsTitle: "Korisničke boje"
+            }
+        }
+    });
+}(Metro, m4q));
+
 
 (function(Metro, $) {
     $.extend(Metro.locales, {
@@ -5382,6 +5760,21 @@ $.noConflict = function() {
                 "random": "Véletlen",
                 "save": "Mentés",
                 "reset": "Visszaállítás"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5423,6 +5816,21 @@ $.noConflict = function() {
                 "random": "Random",
                 "save": "Salvare",
                 "reset": "Reset"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5464,6 +5872,21 @@ $.noConflict = function() {
                 "random": "Aleatório",
                 "save": "Salvar",
                 "reset": "Restaurar"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5486,7 +5909,10 @@ $.noConflict = function() {
                     "days": "ДНИ",
                     "hours": "ЧАСЫ",
                     "minutes": "МИН",
-                    "seconds": "СЕК"
+                    "seconds": "СЕК",
+                    "month": "МЕС",
+                    "day": "ДЕНЬ",
+                    "year": "ГОД"
                 }
             },
             "buttons": {
@@ -5502,6 +5928,21 @@ $.noConflict = function() {
                 "random": "Случайно",
                 "save": "Сохранить",
                 "reset": "Сброс"
+            },
+            "table": {
+                "rowsCount": "Показать записей:",
+                "search": "Поиск:",
+                "info": "Показаны $1 с $2 по $3 записей",
+                "prev": "Предыдущие",
+                "next": "Следующие",
+                "all": "Все",
+                "inspector": "Инспектор",
+                "skip": "Перейти на страницу",
+                "empty": "Нет записей"
+            },
+            "colorSelector": {
+                addUserColorButton: "ДОБАВИТЬ В ОБРАЗЦЫ",
+                userColorsTitle: "ЦВЕТА ПОЛЬЗОВАТЕЛЯ"
             }
         }
     });
@@ -5509,7 +5950,175 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     $.extend(Metro.locales, {
-        'tw-ZH': {
+        'tr-TR': {
+            "calendar": {
+                "months": [
+                    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+                    "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"
+                ],
+                "days": [
+                    "Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi",
+                    "Pa", "Pz", "Sa", "Ça", "Pe", "Cu", "Ct",
+                    "Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"
+                ],
+                "time": {
+                    "days": "GÜN",
+                    "hours": "SAAT",
+                    "minutes": "DAK",
+                    "seconds": "SAN",
+                    "month": "AY",
+                    "day": "GÜN",
+                    "year": "YIL"
+                }
+            },
+            "buttons": {
+                "ok": "Tamam",
+                "cancel": "Vazgeç",
+                "done": "Bitti",
+                "today": "Bugün",
+                "now": "Şimdi",
+                "clear": "Temizle",
+                "help": "Yardım",
+                "yes": "Evet",
+                "no": "Hayır",
+                "random": "Rasgele",
+                "save": "Kurtarmak",
+                "reset": "Sıfırla"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
+            }
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    $.extend(Metro.locales, {
+        'uk-UA': {
+            "calendar": {
+                "months": [
+                    "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень",
+                    "Січ", "Лют", "Бер", "Кві", "Тра", "Чер", "Лип", "Сер", "Вер", "Жов", "Лис", "Гру"
+                ],
+                "days": [
+                    "Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота",
+                    "Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб",
+                    "Нед", "Пон", "Вiв", "Сер", "Чет", "Пят", "Суб"
+                ],
+                "time": {
+                    "days": "ДНІ",
+                    "hours": "ГОД",
+                    "minutes": "ХВИЛ",
+                    "seconds": "СЕК",
+                    "month": "МІС",
+                    "day": "ДЕНЬ",
+                    "year": "РІК"
+                }
+            },
+            "buttons": {
+                "ok": "ОК",
+                "cancel": "Відміна",
+                "done": "Готово",
+                "today": "Сьогодні",
+                "now": "Зараз",
+                "clear": "Очистити",
+                "help": "Допомога",
+                "yes": "Так",
+                "no": "Ні",
+                "random": "Випадково",
+                "save": "Зберегти",
+                "reset": "Скинути"
+            },
+            "table": {
+                "rowsCount": "Показати записів:",
+                "search": "Пошук:",
+                "info": "Показано $1 з $2 по $3 записів",
+                "prev": "Попередні",
+                "next": "Наступні",
+                "all": "Усі",
+                "inspector": "Інспектор",
+                "skip": "Перейти до сторінки",
+                "empty": "Нема записів"
+            },
+            "colorSelector": {
+                addUserColorButton: "ДОДАТИ В ЗРАЗКИ",
+                userColorsTitle: "КОЛІРИ КОРИСТУВАЧА"
+            }
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    $.extend(Metro.locales, {
+        'zh-CN': {
+            "calendar": {
+                "months": [
+                    "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月",
+                    "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"
+                ],
+                "days": [
+                    "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六",
+                    "日", "一", "二", "三", "四", "五", "六",
+                    "周日", "周一", "周二", "周三", "周四", "周五", "周六"
+                ],
+                "time": {
+                    "days": "天",
+                    "hours": "时",
+                    "minutes": "分",
+                    "seconds": "秒",
+                    "month": "月",
+                    "day": "日",
+                    "year": "年"
+                }
+            },
+            "buttons": {
+                "ok": "确认",
+                "cancel": "取消",
+                "done": "完成",
+                "today": "今天",
+                "now": "现在",
+                "clear": "清除",
+                "help": "帮助",
+                "yes": "是",
+                "no": "否",
+                "random": "随机",
+                "save": "保存",
+                "reset": "重啟"
+            },
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
+            }
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    $.extend(Metro.locales, {
+        'zh-TW': {
             "calendar": {
                 "months": [
                     "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月",
@@ -5543,44 +6152,21 @@ $.noConflict = function() {
                 "random": "隨機",
                 "save": "保存",
                 "reset": "重啟"
-            }
-        }
-    });
-}(Metro, m4q));
-
-(function(Metro, $) {
-    $.extend(Metro.locales, {
-        'uk-UA': {
-            "calendar": {
-                "months": [
-                    "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень",
-                    "Січ", "Лют", "Бер", "Кві", "Тра", "Чер", "Лип", "Сер", "Вер", "Жов", "Лис", "Гру"
-                ],
-                "days": [
-                    "Неділя", "Понеділок", "Вівторок", "Середа", "Четвер", "П’ятниця", "Субота",
-                    "Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб",
-                    "Нед", "Пон", "Вiв", "Сер", "Чет", "Пят", "Суб"
-                ],
-                "time": {
-                    "days": "ДНІ",
-                    "hours": "ГОД",
-                    "minutes": "ХВИЛ",
-                    "seconds": "СЕК"
-                }
             },
-            "buttons": {
-                "ok": "ОК",
-                "cancel": "Відміна",
-                "done": "Готово",
-                "today": "Сьогодні",
-                "now": "Зараз",
-                "clear": "Очистити",
-                "help": "Допомога",
-                "yes": "Так",
-                "no": "Ні",
-                "random": "Випадково",
-                "save": "Зберегти",
-                "reset": "Скинути"
+            "table": {
+                "rowsCount": "Show entries:",
+                "search": "Search:",
+                "info": "Showing $1 to $2 of $3 entries",
+                "prev": "Prev",
+                "next": "Next",
+                "all": "All",
+                "inspector": "Inspector",
+                "skip": "Goto page",
+                "empty": "Nothing to show"
+            },
+            "colorSelector": {
+                addUserColorButton: "ADD TO SWATCHES",
+                userColorsTitle: "USER COLORS"
             }
         }
     });
@@ -5664,7 +6250,7 @@ $.noConflict = function() {
     Date.prototype.getWeek = function (dowOffset) {
         var nYear, nday, newYear, day, daynum, weeknum;
 
-        dowOffset = !Utils.isValue(dowOffset) ? METRO_WEEK_START : typeof dowOffset === 'number' ? parseInt(dowOffset) : 0;
+        dowOffset = typeof dowOffset === "undefined" || isNaN(dowOffset) ? METRO_WEEK_START : typeof dowOffset === 'number' ? parseInt(dowOffset) : 0;
         newYear = new Date(this.getFullYear(),0,1);
         day = newYear.getDay() - dowOffset;
         day = (day >= 0 ? day : day + 7);
@@ -6018,11 +6604,6 @@ $.noConflict = function() {
             return /^<\/?[\w\s="/.':;#-\/\?]+>/gi.test(val);
         },
 
-        isColor: function (val) {
-            /* eslint-disable-next-line */
-            return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(val);
-        },
-
         isEmbedObject: function(val){
             var embed = ["iframe", "object", "embed", "video"];
             var result = false;
@@ -6037,7 +6618,7 @@ $.noConflict = function() {
         },
 
         isVideoUrl: function(val){
-            return /youtu\.be|youtube|vimeo/gi.test(val);
+            return /youtu\.be|youtube|twitch|vimeo/gi.test(val);
         },
 
         isDate: function(val, format){
@@ -6068,22 +6649,12 @@ $.noConflict = function() {
             return (!isNaN(n) && +n % 1 !== 0) || /^\d*\.\d+$/.test(n);
         },
 
-        isTouchDevice: function() {
-            return (('ontouchstart' in window)
-                || (navigator.MaxTouchPoints > 0)
-                || (navigator.msMaxTouchPoints > 0));
-        },
-
         isFunc: function(f){
             return this.isType(f, 'function');
         },
 
         isObject: function(o){
             return this.isType(o, 'object');
-        },
-
-        isArray: function(a){
-            return Array.isArray(a);
         },
 
         isType: function(o, t){
@@ -6103,7 +6674,7 @@ $.noConflict = function() {
                 return o;
             }
 
-            if ((""+t).toLowerCase() === 'array' && this.isArray(o)) {
+            if ((""+t).toLowerCase() === 'array' && Array.isArray(o)) {
                 return o;
             }
 
@@ -6173,15 +6744,15 @@ $.noConflict = function() {
             return !!window.MSInputMethodContext && !!document["documentMode"];
         },
 
-        embedObject: function(val){
-            return "<div class='embed-container'>" + $(val)[0].outerHTML + "</div>";
-        },
-
         embedUrl: function(val){
             if (val.indexOf("youtu.be") !== -1) {
                 val = "https://www.youtube.com/embed/" + val.split("/").pop();
             }
             return "<div class='embed-container'><iframe src='"+val+"'></iframe></div>";
+        },
+
+        elementId: function(prefix){
+            return prefix+"-"+(new Date()).getTime()+$.random(1, 1000);
         },
 
         secondsToTime: function(secs) {
@@ -6198,24 +6769,6 @@ $.noConflict = function() {
                 "m": minutes,
                 "s": seconds
             };
-        },
-
-        hex2rgba: function(hex, alpha){
-            var c;
-            alpha = isNaN(alpha) ? 1 : alpha;
-            if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
-                c= hex.substring(1).split('');
-                if(c.length=== 3){
-                    c= [c[0], c[0], c[1], c[1], c[2], c[2]];
-                }
-                c= '0x'+c.join('');
-                return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
-            }
-            throw new Error('Hex2rgba error. Bad Hex value');
-        },
-
-        elementId: function(prefix){
-            return prefix+"-"+(new Date()).getTime()+$.random(1, 1000);
         },
 
         secondsToFormattedString: function(time){
@@ -6249,7 +6802,7 @@ $.noConflict = function() {
                 result = func.apply(context, args);
             } catch (err) {
                 result = null;
-                if (METRO_THROWS === true) {
+                if (window.METRO_THROWS === true) {
                     throw err;
                 }
             }
@@ -6258,7 +6811,7 @@ $.noConflict = function() {
 
         isOutsider: function(element) {
             var el = $(element);
-            var rect;
+            var inViewport;
             var clone = el.clone();
 
             clone.removeAttr("data-role").css({
@@ -6268,15 +6821,11 @@ $.noConflict = function() {
             });
             el.parent().append(clone);
 
-            rect = clone[0].getBoundingClientRect();
+            inViewport = this.inViewport(clone[0]);
+
             clone.remove();
 
-            return (
-                rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-            );
+            return !inViewport;
         },
 
         inViewport: function(el){
@@ -6544,73 +7093,6 @@ $.noConflict = function() {
             return this.getStyle(el).getPropertyValue(property);
         },
 
-        getTransformMatrix: function(el, returnArray){
-            var computedMatrix = this.getStyleOne(el, "transform");
-            var a = computedMatrix
-                .replace("matrix(", '')
-                .slice(0, -1)
-                .split(',');
-            return returnArray !== true ? {
-                a: a[0],
-                b: a[1],
-                c: a[2],
-                d: a[3],
-                tx: a[4],
-                ty: a[5]
-            } : a;
-        },
-
-        computedRgbToHex: function(rgb){
-            var a = rgb.replace(/[^\d,]/g, '').split(',');
-            var result = "#", i;
-
-            for(i = 0; i < 3; i++) {
-                var h = parseInt(a[i]).toString(16);
-                result += h.length === 1 ? "0" + h : h;
-            }
-
-            return result;
-        },
-
-        computedRgbToRgba: function(rgb, alpha){
-            var a = rgb.replace(/[^\d,]/g, '').split(',');
-            if (alpha === undefined) {
-                alpha = 1;
-            }
-            a.push(alpha);
-            return "rgba("+a.join(",")+")";
-        },
-
-        computedRgbToArray: function(rgb){
-            return rgb.replace(/[^\d,]/g, '').split(',');
-        },
-
-        hexColorToArray: function(hex){
-            var c;
-            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
-                c= hex.substring(1).split('');
-                if(c.length === 3){
-                    c= [c[0], c[0], c[1], c[1], c[2], c[2]];
-                }
-                c= '0x'+c.join('');
-                return [(c>>16)&255, (c>>8)&255, c&255];
-            }
-            return [0,0,0];
-        },
-
-        hexColorToRgbA: function(hex, alpha){
-            var c;
-            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
-                c= hex.substring(1).split('');
-                if(c.length === 3){
-                    c= [c[0], c[0], c[1], c[1], c[2], c[2]];
-                }
-                c= '0x'+c.join('');
-                return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255, alpha ? alpha : 1].join(',')+')';
-            }
-            return 'rgba(0,0,0,1)';
-        },
-
         getInlineStyles: function(element){
             var i, l, styles = {}, el = $(element)[0];
             for (i = 0, l = el.style.length; i < l; i++) {
@@ -6703,15 +7185,15 @@ $.noConflict = function() {
         },
 
         mediaModes: function(){
-            return METRO_MEDIA;
+            return window.METRO_MEDIA;
         },
 
         mediaExist: function(media){
-            return METRO_MEDIA.indexOf(media) > -1;
+            return window.METRO_MEDIA.indexOf(media) > -1;
         },
 
         inMedia: function(media){
-            return METRO_MEDIA.indexOf(media) > -1 && METRO_MEDIA.indexOf(media) === METRO_MEDIA.length - 1;
+            return window.METRO_MEDIA.indexOf(media) > -1 && window.METRO_MEDIA.indexOf(media) === window.METRO_MEDIA.length - 1;
         },
 
         isValue: function(val){
@@ -6808,36 +7290,461 @@ $.noConflict = function() {
             }
         },
 
-        isLocalhost: function(pattern){
-            pattern = pattern || ".local";
-            return (
-                location.hostname === "localhost" ||
-                location.hostname === "127.0.0.1" ||
-                location.hostname === "[::1]" ||
-                location.hostname === "" ||
-                window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/ ) ||
-                location.hostname.indexOf(pattern) !== -1
-            );
-        },
-
         decCount: function(v){
             return v % 1 === 0 ? 0 : v.toString().split(".")[1].length;
         },
 
-        randomColor: function(){
-            var r, g, b;
+        /**
+         * Add symbols to string on the left side
+         * @param str Where
+         * @param pad what
+         * @param length to length
+         */
+        lpad: function(str, pad, length){
+            var _str = ""+str;
+            if (length && _str.length >= length) {
+                return _str;
+            }
+            return Array((length + 1) - _str.length).join(pad) + _str;
+        },
 
-            r = $.random(0, 255);
-            g = $.random(0, 255);
-            b = $.random(0, 255);
-
-            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        rpad: function(str, pad, length){
+            var _str = ""+str;
+            if (length && _str.length >= length) {
+                return _str;
+            }
+            return _str + Array((length + 1) - _str.length).join(pad);
         }
     };
 
     if (window.METRO_GLOBAL_COMMON === true) {
         window.Utils = Metro.utils;
     }
+}(Metro, m4q));
+
+(function(Metro, $){
+    'use strict';
+    var Utils = Metro.utils;
+    var AccordionDefaultConfig = {
+        accordionDeferred: 0,
+        showMarker: true,
+        material: false,
+        duration: METRO_ANIMATION_DURATION,
+        oneFrame: true,
+        showActive: true,
+        activeFrameClass: "",
+        activeHeadingClass: "",
+        activeContentClass: "",
+        onFrameOpen: Metro.noop,
+        onFrameBeforeOpen: Metro.noop_true,
+        onFrameClose: Metro.noop,
+        onFrameBeforeClose: Metro.noop_true,
+        onAccordionCreate: Metro.noop
+    };
+
+    Metro.accordionSetup = function(options){
+        AccordionDefaultConfig = $.extend({}, AccordionDefaultConfig, options);
+    };
+
+    if (typeof window["metroAccordionSetup"] !== undefined) {
+        Metro.accordionSetup(window["metroAccordionSetup"]);
+    }
+
+    Metro.Component('accordion', {
+        init: function( options, elem ) {
+            this._super(elem, options, AccordionDefaultConfig);
+            return this;
+        },
+
+        _create: function(){
+            var element = this.element;
+
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('accordionCreate', {
+                element: element
+            });
+        },
+
+        _createStructure: function(){
+            var that = this, element = this.element, o = this.options;
+            var frames = element.children(".frame");
+            var active = element.children(".frame.active");
+            var frame_to_open;
+
+            element.addClass("accordion");
+
+            if (o.showMarker === true) {
+                element.addClass("marker-on");
+            }
+
+            if (o.material === true) {
+                element.addClass("material");
+            }
+
+            if (active.length === 0) {
+                frame_to_open = frames[0];
+            } else {
+                frame_to_open = active[0];
+            }
+
+            this._hideAll();
+
+            if (o.showActive === true) {
+                if (o.oneFrame === true) {
+                    this._openFrame(frame_to_open);
+                } else {
+                    $.each(active, function(){
+                        that._openFrame(this);
+                    });
+                }
+            }
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element, o = this.options;
+            var active = element.children(".frame.active");
+
+            element.on(Metro.events.click, ".heading", function(){
+                var heading = $(this);
+                var frame = heading.parent();
+
+                if (heading.closest(".accordion")[0] !== element[0]) {
+                    return false;
+                }
+
+                if (frame.hasClass("active")) {
+                    if (active.length === 1 && o.oneFrame) {
+                        /* eslint-disable-next-line */
+
+                    } else {
+                        that._closeFrame(frame);
+                    }
+                } else {
+                    that._openFrame(frame);
+                }
+            });
+        },
+
+        _openFrame: function(f){
+            var element = this.element, o = this.options;
+            var frame = $(f);
+
+            if (Utils.exec(o.onFrameBeforeOpen, [frame[0]], element[0]) === false) {
+                return false;
+            }
+
+            if (o.oneFrame === true) {
+                this._closeAll(frame[0]);
+            }
+
+            frame.addClass("active " + o.activeFrameClass);
+            frame.children(".heading").addClass(o.activeHeadingClass);
+            frame.children(".content").addClass(o.activeContentClass).slideDown(o.duration);
+
+            this._fireEvent("frameOpen", {
+                frame: frame[0]
+            });
+        },
+
+        _closeFrame: function(f){
+            var element = this.element, o = this.options;
+            var frame = $(f);
+
+            if (!frame.hasClass("active")) {
+                return ;
+            }
+
+            if (Utils.exec(o.onFrameBeforeClose, [frame[0]], element[0]) === false) {
+                return ;
+            }
+
+            frame.removeClass("active " + o.activeFrameClass);
+            frame.children(".heading").removeClass(o.activeHeadingClass);
+            frame.children(".content").removeClass(o.activeContentClass).slideUp(o.duration);
+
+            this._fireEvent("frameClose", {
+                frame: frame[0]
+            });
+        },
+
+        _closeAll: function(skip){
+            var that = this, element = this.element;
+            var frames = element.children(".frame");
+
+            $.each(frames, function(){
+                if (skip === this) return;
+                that._closeFrame(this);
+            });
+        },
+
+        _hideAll: function(){
+            var element = this.element;
+            var frames = element.children(".frame");
+
+            $.each(frames, function(){
+                $(this).children(".content").hide();
+            });
+        },
+
+        _openAll: function(){
+            var that = this, element = this.element;
+            var frames = element.children(".frame");
+
+            $.each(frames, function(){
+                that._openFrame(this);
+            });
+        },
+
+        /* eslint-disable-next-line */
+        changeAttribute: function(attributeName){
+        },
+
+        destroy: function(){
+            var element = this.element;
+            element.off(Metro.events.click, ".heading");
+            return element;
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+    var ActivityDefaultConfig = {
+        activityDeferred: 0,
+        type: "ring",
+        style: "light",
+        size: 64,
+        radius: 20,
+        onActivityCreate: Metro.noop
+    };
+
+    Metro.activitySetup = function(options){
+        ActivityDefaultConfig = $.extend({}, ActivityDefaultConfig, options);
+    };
+
+    if (typeof window["metroActivitySetup"] !== undefined) {
+        Metro.activitySetup(window["metroActivitySetup"]);
+    }
+
+    Metro.Component('activity', {
+        init: function( options, elem ) {
+            this._super(elem, options, ActivityDefaultConfig);
+            return this;
+        },
+
+        _create: function(){
+            var element = this.element, o = this.options;
+            var i, wrap;
+
+            element
+                .html('')
+                .addClass(o.style + "-style")
+                .addClass("activity-" + o.type);
+
+            function _metro(){
+                for(i = 0; i < 5 ; i++) {
+                    $("<div/>").addClass('circle').appendTo(element);
+                }
+            }
+
+            function _square(){
+                for(i = 0; i < 4 ; i++) {
+                    $("<div/>").addClass('square').appendTo(element);
+                }
+            }
+
+            function _cycle(){
+                $("<div/>").addClass('cycle').appendTo(element);
+            }
+
+            function _ring(){
+                for(i = 0; i < 5 ; i++) {
+                    wrap = $("<div/>").addClass('wrap').appendTo(element);
+                    $("<div/>").addClass('circle').appendTo(wrap);
+                }
+            }
+
+            function _simple(){
+                $('<svg class="circular"><circle class="path" cx="'+o.size/2+'" cy="'+o.size/2+'" r="'+o.radius+'" fill="none" stroke-width="2" stroke-miterlimit="10"/></svg>').appendTo(element);
+            }
+
+            function _atom(){
+                for(i = 0; i < 3 ; i++) {
+                    $("<span/>").addClass('electron').appendTo(element);
+                }
+            }
+
+            function _bars(){
+                for(i = 0; i < 6 ; i++) {
+                    $("<span/>").addClass('bar').appendTo(element);
+                }
+            }
+
+            switch (o.type) {
+                case 'metro': _metro(); break;
+                case 'square': _square(); break;
+                case 'cycle': _cycle(); break;
+                case 'simple': _simple(); break;
+                case 'atom': _atom(); break;
+                case 'bars': _bars(); break;
+                default: _ring();
+            }
+
+            this._fireEvent("activity-create", {
+                element: element
+            })
+        },
+
+        /*eslint-disable-next-line*/
+        changeAttribute: function(attributeName){
+        },
+
+        destroy: function(){
+            return this.element;
+        }
+    });
+
+    Metro.activity = {
+        open: function(options){
+            var o = options || {};
+            var activity = '<div data-role="activity" data-type="'+( o.type ? o.type : 'cycle' )+'" data-style="'+( o.style ? o.style : 'color' )+'"></div>';
+            var text = o.text ? '<div class="text-center">'+o.text+'</div>' : '';
+
+            return Metro.dialog.create({
+                content: activity + text,
+                defaultAction: false,
+                clsContent: "d-flex flex-column flex-justify-center flex-align-center bg-transparent no-shadow w-auto",
+                clsDialog: "no-border no-shadow bg-transparent global-dialog",
+                autoHide: o.autoHide ? o.autoHide : 0,
+                overlayClickClose: o.overlayClickClose === true,
+                overlayColor: o.overlayColor ? o.overlayColor : '#000000',
+                overlayAlpha: o.overlayAlpha ? o.overlayAlpha : 0.5,
+                clsOverlay: "global-overlay"
+            });
+        },
+
+        close: function(a){
+            Metro.dialog.close(a);
+        }
+    };
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+    var Utils = Metro.utils;
+    var AdblockDefaultConfig = {
+        adblockDeferred: 0,
+        checkInterval: 1000,
+        fireOnce: true,
+        checkStop: 10,
+        localhost: false,
+        onAlert: Metro.noop,
+        onFishingStart: Metro.noop,
+        onFishingDone: Metro.noop
+    };
+
+    Metro.adblockSetup = function(options){
+        AdblockDefaultConfig = $.extend({}, AdblockDefaultConfig, options);
+    };
+
+    if (typeof window["metroAdblockSetup"] !== undefined) {
+        Metro.adblockSetup(window["metroAdblockSetup"]);
+    }
+
+    var Adblock = {
+        bite: function(){
+            var classes = "adblock-bite adsense google-adsense dblclick advert topad top_ads topAds textads sponsoredtextlink_container show_ads right-banner rekl mpu module-ad mid_ad mediaget horizontal_ad headerAd contentAd brand-link bottombanner bottom_ad_block block_ad bannertop banner-right banner-body b-banner b-article-aside__banner b-advert adwrapper adverts advertisment advertisement:not(body) advertise advert_list adtable adsense adpic adlist adleft adinfo adi adholder adframe addiv ad_text ad_space ad_right ad_links ad_body ad_block ad_Right adTitle adText";
+            $("<div>")
+                .addClass(classes.split(" ").shuffle().join(" "))
+                .css({
+                    position: "fixed",
+                    height: 1,
+                    width: 1,
+                    overflow: "hidden",
+                    visibility: "visible",
+                    top: 0,
+                    left: 0
+                })
+                .append($("<a href='https://dblclick.net'>").html('dblclick.net'))
+                .appendTo('body');
+
+            if (Adblock.options.adblockDeferred) {
+                setTimeout(function () {
+                    Adblock.fishing();
+                }, Adblock.options.adblockDeferred);
+            } else this.fishing();
+        },
+
+        fishing: function(){
+            var o = Adblock.options;
+            var checks = typeof o.fireOnce === "number" ? o.fireOnce : 0;
+            var checkStop = o.checkStop;
+            var interval = false;
+            var run = function(){
+                var a = $(".adsense.google-adsense.dblclick.advert.adblock-bite");
+                var b = a.find("a");
+                var done = function(){
+                    clearInterval(interval);
+
+                    Utils.exec(o.onFishingDone);
+                    $(window).fire("fishing-done");
+
+                    a.remove();
+                };
+
+                if (!o.localhost && $.localhost) {
+                    done();
+                    return ;
+                }
+
+                if (   !a.length
+                    || !b.length
+                    || a.css("display").indexOf('none') > -1
+                    || b.css("display").indexOf('none') > -1
+                ) {
+
+                    Utils.exec(Adblock.options.onAlert);
+                    $(window).fire("adblock-alert");
+
+                    if (Adblock.options.fireOnce === true) {
+                        done();
+                    } else {
+                        checks--;
+                        if (checks === 0) {
+                            done();
+                        }
+                    }
+                } else {
+                    if (checkStop !== false) {
+                        checkStop--;
+                        if (checkStop === 0) {
+                            done();
+                        }
+                    }
+                }
+            };
+
+            Utils.exec(o.onFishingStart);
+            $(window).fire("fishing-start");
+
+            interval = setInterval(function(){
+                run();
+            }, Adblock.options.checkInterval);
+
+            run();
+        }
+    };
+
+    Metro.Adblock = Adblock;
+
+    $(function(){
+        Adblock.options = $.extend({}, AdblockDefaultConfig);
+        $(window).on("metro-initiated", function(){
+            Adblock.bite();
+        });
+    });
 }(Metro, m4q));
 
 (function(Metro, $) {
@@ -7192,2081 +8099,7 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
-    var Types = {
-        HEX: "hex",
-        HEXA: "hexa",
-        RGB: "rgb",
-        RGBA: "rgba",
-        HSV: "hsv",
-        HSL: "hsl",
-        HSLA: "hsla",
-        CMYK: "cmyk",
-        UNKNOWN: "unknown"
-    };
 
-    Metro.colorsSetup = function (options) {
-        ColorsDefaultConfig = $.extend({}, ColorsDefaultConfig, options);
-    };
-
-    if (typeof window["metroColorsSetup"] !== undefined) {
-        Metro.colorsSetup(window["metroColorsSetup"]);
-    }
-
-    var ColorsDefaultConfig = {
-        angle: 30,
-        algorithm: 1,
-        step: 0.1,
-        distance: 5,
-        tint1: 0.8,
-        tint2: 0.4,
-        shade1: 0.6,
-        shade2: 0.3,
-        alpha: 1
-    };
-
-    function RGB(r, g, b){
-        this.r = r || 0;
-        this.g = g || 0;
-        this.b = b || 0;
-    }
-
-    RGB.prototype.toString = function(){
-        return "rgb(" + [this.r, this.g, this.b].join(",") + ")";
-    }
-
-    function RGBA(r, g, b, a){
-        this.r = r || 0;
-        this.g = g || 0;
-        this.b = b || 0;
-        this.a = a || 1;
-    }
-
-    RGBA.prototype.toString = function(){
-        return "rgba(" + [this.r, this.g, this.b, this.a].join(",") + ")";
-    }
-
-    function HSV(h, s, v){
-        this.h = h || 0;
-        this.s = s || 0;
-        this.v = v || 0;
-    }
-
-    HSV.prototype.toString = function(){
-        return "hsv(" + [this.h, this.s, this.v].join(",") + ")";
-    }
-
-    function HSL(h, s, l){
-        this.h = h || 0;
-        this.s = s || 0;
-        this.l = l || 0;
-    }
-
-    HSL.prototype.toString = function(){
-        return "hsl(" + [this.h, this.s, this.l].join(",") + ")";
-    }
-
-    function HSLA(h, s, l, a){
-        this.h = h || 0;
-        this.s = s || 0;
-        this.l = l || 0;
-        this.a = a || 1;
-    }
-
-    HSLA.prototype.toString = function(){
-        return "hsla(" + [this.h, this.s, this.l, this.a].join(",") + ")";
-    }
-
-    function CMYK(c, m, y, k){
-        this.c = c || 0;
-        this.m = m || 0;
-        this.y = y || 0;
-        this.k = k || 0;
-    }
-
-    CMYK.prototype.toString = function(){
-        return "cmyk(" + [this.c, this.m, this.y, this.k].join(",") + ")";
-    }
-
-    var Colors = {
-
-        PALETTES: {
-            ALL: "all",
-            METRO: "metro",
-            STANDARD: "standard"
-        },
-
-        metro: {
-            lime: '#a4c400',
-            green: '#60a917',
-            emerald: '#008a00',
-            blue: '#00AFF0',
-            teal: '#00aba9',
-            cyan: '#1ba1e2',
-            cobalt: '#0050ef',
-            indigo: '#6a00ff',
-            violet: '#aa00ff',
-            pink: '#dc4fad',
-            magenta: '#d80073',
-            crimson: '#a20025',
-            red: '#CE352C',
-            orange: '#fa6800',
-            amber: '#f0a30a',
-            yellow: '#fff000',
-            brown: '#825a2c',
-            olive: '#6d8764',
-            steel: '#647687',
-            mauve: '#76608a',
-            taupe: '#87794e'
-        },
-
-        standard: {
-            aliceBlue: "#f0f8ff",
-            antiqueWhite: "#faebd7",
-            aqua: "#00ffff",
-            aquamarine: "#7fffd4",
-            azure: "#f0ffff",
-            beige: "#f5f5dc",
-            bisque: "#ffe4c4",
-            black: "#000000",
-            blanchedAlmond: "#ffebcd",
-            blue: "#0000ff",
-            blueViolet: "#8a2be2",
-            brown: "#a52a2a",
-            burlyWood: "#deb887",
-            cadetBlue: "#5f9ea0",
-            chartreuse: "#7fff00",
-            chocolate: "#d2691e",
-            coral: "#ff7f50",
-            cornflowerBlue: "#6495ed",
-            cornsilk: "#fff8dc",
-            crimson: "#dc143c",
-            cyan: "#00ffff",
-            darkBlue: "#00008b",
-            darkCyan: "#008b8b",
-            darkGoldenRod: "#b8860b",
-            darkGray: "#a9a9a9",
-            darkGreen: "#006400",
-            darkKhaki: "#bdb76b",
-            darkMagenta: "#8b008b",
-            darkOliveGreen: "#556b2f",
-            darkOrange: "#ff8c00",
-            darkOrchid: "#9932cc",
-            darkRed: "#8b0000",
-            darkSalmon: "#e9967a",
-            darkSeaGreen: "#8fbc8f",
-            darkSlateBlue: "#483d8b",
-            darkSlateGray: "#2f4f4f",
-            darkTurquoise: "#00ced1",
-            darkViolet: "#9400d3",
-            deepPink: "#ff1493",
-            deepSkyBlue: "#00bfff",
-            dimGray: "#696969",
-            dodgerBlue: "#1e90ff",
-            fireBrick: "#b22222",
-            floralWhite: "#fffaf0",
-            forestGreen: "#228b22",
-            fuchsia: "#ff00ff",
-            gainsboro: "#DCDCDC",
-            ghostWhite: "#F8F8FF",
-            gold: "#ffd700",
-            goldenRod: "#daa520",
-            gray: "#808080",
-            green: "#008000",
-            greenYellow: "#adff2f",
-            honeyDew: "#f0fff0",
-            hotPink: "#ff69b4",
-            indianRed: "#cd5c5c",
-            indigo: "#4b0082",
-            ivory: "#fffff0",
-            khaki: "#f0e68c",
-            lavender: "#e6e6fa",
-            lavenderBlush: "#fff0f5",
-            lawnGreen: "#7cfc00",
-            lemonChiffon: "#fffacd",
-            lightBlue: "#add8e6",
-            lightCoral: "#f08080",
-            lightCyan: "#e0ffff",
-            lightGoldenRodYellow: "#fafad2",
-            lightGray: "#d3d3d3",
-            lightGreen: "#90ee90",
-            lightPink: "#ffb6c1",
-            lightSalmon: "#ffa07a",
-            lightSeaGreen: "#20b2aa",
-            lightSkyBlue: "#87cefa",
-            lightSlateGray: "#778899",
-            lightSteelBlue: "#b0c4de",
-            lightYellow: "#ffffe0",
-            lime: "#00ff00",
-            limeGreen: "#32dc32",
-            linen: "#faf0e6",
-            magenta: "#ff00ff",
-            maroon: "#800000",
-            mediumAquaMarine: "#66cdaa",
-            mediumBlue: "#0000cd",
-            mediumOrchid: "#ba55d3",
-            mediumPurple: "#9370db",
-            mediumSeaGreen: "#3cb371",
-            mediumSlateBlue: "#7b68ee",
-            mediumSpringGreen: "#00fa9a",
-            mediumTurquoise: "#48d1cc",
-            mediumVioletRed: "#c71585",
-            midnightBlue: "#191970",
-            mintCream: "#f5fffa",
-            mistyRose: "#ffe4e1",
-            moccasin: "#ffe4b5",
-            navajoWhite: "#ffdead",
-            navy: "#000080",
-            oldLace: "#fdd5e6",
-            olive: "#808000",
-            oliveDrab: "#6b8e23",
-            orange: "#ffa500",
-            orangeRed: "#ff4500",
-            orchid: "#da70d6",
-            paleGoldenRod: "#eee8aa",
-            paleGreen: "#98fb98",
-            paleTurquoise: "#afeeee",
-            paleVioletRed: "#db7093",
-            papayaWhip: "#ffefd5",
-            peachPuff: "#ffdab9",
-            peru: "#cd853f",
-            pink: "#ffc0cb",
-            plum: "#dda0dd",
-            powderBlue: "#b0e0e6",
-            purple: "#800080",
-            rebeccaPurple: "#663399",
-            red: "#ff0000",
-            rosyBrown: "#bc8f8f",
-            royalBlue: "#4169e1",
-            saddleBrown: "#8b4513",
-            salmon: "#fa8072",
-            sandyBrown: "#f4a460",
-            seaGreen: "#2e8b57",
-            seaShell: "#fff5ee",
-            sienna: "#a0522d",
-            silver: "#c0c0c0",
-            slyBlue: "#87ceeb",
-            slateBlue: "#6a5acd",
-            slateGray: "#708090",
-            snow: "#fffafa",
-            springGreen: "#00ff7f",
-            steelBlue: "#4682b4",
-            tan: "#d2b48c",
-            teal: "#008080",
-            thistle: "#d8bfd8",
-            tomato: "#ff6347",
-            turquoise: "#40e0d0",
-            violet: "#ee82ee",
-            wheat: "#f5deb3",
-            white: "#ffffff",
-            whiteSmoke: "#f5f5f5",
-            yellow: "#ffff00",
-            yellowGreen: "#9acd32"
-        },
-
-        all: {},
-
-        init: function(){
-            this.all = $.extend( {}, this.standard, this.metro );
-            return this;
-        },
-
-        color: function(name, palette){
-            palette = palette || this.PALETTES.ALL;
-            return this[palette][name] !== undefined ? this[palette][name] : false;
-        },
-
-        palette: function(palette){
-            palette = palette || this.PALETTES.ALL;
-            return Object.keys(this[palette]);
-        },
-
-        expandHexColor: function(hex){
-            if (typeof hex !== "string") {
-                throw new Error("Value is not a string!");
-            }
-            if (hex[0] === "#" && hex.length === 4) {
-                var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-                return (
-                    "#" +
-                    hex.replace(shorthandRegex, function(m, r, g, b) {
-                        return r + r + g + g + b + b;
-                    })
-                );
-            }
-            return hex[0] === "#" ? hex : "#" + hex;
-        },
-
-        colors: function(palette){
-            palette = palette || this.PALETTES.ALL;
-            return Object.values(this[palette]);
-        },
-
-        random: function(colorType, alpha){
-            colorType = colorType || Types.HEX;
-            alpha = typeof alpha !== "undefined" ? alpha : 1;
-
-            var hex, r, g, b;
-
-            r = $.random(0, 255);
-            g = $.random(0, 255);
-            b = $.random(0, 255);
-
-            hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-
-            return colorType === "hex" ? hex : this.toColor(hex, colorType, alpha);
-        },
-
-        parse: function(color){
-            var _color = color.toLowerCase();
-
-            var a = _color
-                .replace(/[^\d.,]/g, "")
-                .split(",")
-                .map(function(v) {
-                    return _color.includes("hs") ? parseFloat(v) : parseInt(v);
-                });
-
-            if (_color[0] === "#") {
-                return this.expandHexColor(_color);
-            }
-
-            if (_color.includes("rgba")) {
-                return new RGBA(a[0], a[1], a[2], a[3]);
-            }
-            if (_color.includes("rgb")) {
-                return new RGB(a[0], a[1], a[2]);
-            }
-            if (_color.includes("cmyk")) {
-                return new CMYK(a[0], a[1], a[2], a[3]);
-            }
-            if (_color.includes("hsv")) {
-                return new HSV(a[0], a[1], a[2]);
-            }
-            if (_color.includes("hsla")) {
-                return new HSLA(a[0], a[1], a[2], a[3]);
-            }
-            if (_color.includes("hsl")) {
-                return new HSL(a[0], a[1], a[2]);
-            }
-            return _color;
-        },
-
-        createColor: function(colorType, from){
-            colorType = colorType || "hex";
-            from = from || "#000000";
-
-            var baseColor;
-
-            if (typeof from === "string") {
-                baseColor = this.parse(from);
-            }
-
-            if (!this.isColor(baseColor)) {
-                baseColor = "#000000";
-            }
-
-            return this.toColor(baseColor, colorType.toLowerCase());
-        },
-
-        isDark: function(color){
-            if (!this.isColor(color)) return;
-            var rgb = this.toRGB(color);
-            var YIQ = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-            return YIQ < 128;
-        },
-
-        isLight: function(color){
-            return !this.isDark(color);
-        },
-
-        isHSV: function(color){
-            return color instanceof HSV;
-        },
-
-        isHSL: function(color){
-            return color instanceof HSL;
-        },
-
-        isHSLA: function(color){
-            return color instanceof HSLA;
-        },
-
-        isRGB: function(color){
-            return color instanceof RGB;
-        },
-
-        isRGBA: function(color){
-            return color instanceof RGBA;
-        },
-
-        isCMYK: function(color){
-            return color instanceof CMYK;
-        },
-
-        isHEX: function(color){
-            return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color);
-        },
-
-        isColor: function(color){
-            return !color
-                ? false
-                : this.isHEX(color) ||
-                  this.isRGB(color) ||
-                  this.isRGBA(color) ||
-                  this.isHSV(color) ||
-                  this.isHSL(color) ||
-                  this.isHSLA(color) ||
-                  this.isCMYK(color);
-        },
-
-        check: function(color, type){
-            if (!this["is"+type.toUpperCase()](color)) {
-                throw new Error("Value is not a " + type + " color type!");
-            }
-        },
-
-        colorType: function(color){
-            if (this.isHEX(color)) return Types.HEX;
-            if (this.isRGB(color)) return Types.RGB;
-            if (this.isRGBA(color)) return Types.RGBA;
-            if (this.isHSV(color)) return Types.HSV;
-            if (this.isHSL(color)) return Types.HSL;
-            if (this.isHSLA(color)) return Types.HSLA;
-            if (this.isCMYK(color)) return Types.CMYK;
-
-            return Types.UNKNOWN;
-        },
-
-        equal: function(color1, color2){
-            if (!this.isColor(color1) || !this.isColor(color2)) {
-                return false;
-            }
-
-            return this.toHEX(color1) === this.toHEX(color2);
-        },
-
-        colorToString: function(color){
-            return color.toString();
-        },
-
-        hex2rgb: function(color){
-            if (typeof color !== "string") {
-                throw new Error("Value is not a string!")
-            }
-            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
-                this.expandHexColor(color)
-            );
-            var rgb = [
-                parseInt(result[1], 16),
-                parseInt(result[2], 16),
-                parseInt(result[3], 16)
-            ];
-            return result ? new RGB(rgb[0], rgb[1], rgb[2]) : null;
-        },
-
-        rgb2hex: function(color){
-            this.check(color, "rgb");
-            return (
-                "#" +
-                ((1 << 24) + (color.r << 16) + (color.g << 8) + color.b).toString(16).slice(1)
-            );
-        },
-
-        rgb2hsv: function(color){
-            this.check(color, "rgb");
-            var hsv = new HSV();
-            var h, s, v;
-            var r = color.r / 255,
-                g = color.g / 255,
-                b = color.b / 255;
-
-            var max = Math.max(r, g, b);
-            var min = Math.min(r, g, b);
-            var delta = max - min;
-
-            v = max;
-
-            if (max === 0) {
-                s = 0;
-            } else {
-                s = 1 - min / max;
-            }
-
-            if (max === min) {
-                h = 0;
-            } else if (max === r && g >= b) {
-                h = 60 * ((g - b) / delta);
-            } else if (max === r && g < b) {
-                h = 60 * ((g - b) / delta) + 360;
-            } else if (max === g) {
-                h = 60 * ((b - r) / delta) + 120;
-            } else if (max === b) {
-                h = 60 * ((r - g) / delta) + 240;
-            } else {
-                h = 0;
-            }
-
-            hsv.h = h;
-            hsv.s = s;
-            hsv.v = v;
-
-            return hsv;
-        },
-
-        hsv2rgb: function(color){
-            this.check(color, "hsv");
-            var r, g, b;
-            var h = color.h,
-                s = color.s * 100,
-                v = color.v * 100;
-            var Hi = Math.floor(h / 60);
-            var Vmin = ((100 - s) * v) / 100;
-            var alpha = (v - Vmin) * ((h % 60) / 60);
-            var Vinc = Vmin + alpha;
-            var Vdec = v - alpha;
-
-            switch (Hi) {
-                case 0:
-                    r = v;
-                    g = Vinc;
-                    b = Vmin;
-                    break;
-                case 1:
-                    r = Vdec;
-                    g = v;
-                    b = Vmin;
-                    break;
-                case 2:
-                    r = Vmin;
-                    g = v;
-                    b = Vinc;
-                    break;
-                case 3:
-                    r = Vmin;
-                    g = Vdec;
-                    b = v;
-                    break;
-                case 4:
-                    r = Vinc;
-                    g = Vmin;
-                    b = v;
-                    break;
-                case 5:
-                    r = v;
-                    g = Vmin;
-                    b = Vdec;
-                    break;
-            }
-
-            return new RGB(
-                Math.round((r * 255) / 100),
-                Math.round((g * 255) / 100),
-                Math.round((b * 255) / 100)
-            );
-        },
-
-        hsv2hex: function(color){
-            this.check(color, "hsv");
-            return this.rgb2hex(this.hsv2rgb(color));
-        },
-
-        hex2hsv: function(color){
-            this.check(color, "hex");
-            return this.rgb2hsv(this.hex2rgb(color));
-        },
-
-        rgb2cmyk: function(color){
-            this.check(color, "rgb");
-            var cmyk = new CMYK();
-
-            var r = color.r / 255;
-            var g = color.g / 255;
-            var b = color.b / 255;
-
-            cmyk.k = Math.min(1 - r, 1 - g, 1 - b);
-
-            cmyk.c = 1 - cmyk.k === 0 ? 0 : (1 - r - cmyk.k) / (1 - cmyk.k);
-            cmyk.m = 1 - cmyk.k === 0 ? 0 : (1 - g - cmyk.k) / (1 - cmyk.k);
-            cmyk.y = 1 - cmyk.k === 0 ? 0 : (1 - b - cmyk.k) / (1 - cmyk.k);
-
-            cmyk.c = Math.round(cmyk.c * 100);
-            cmyk.m = Math.round(cmyk.m * 100);
-            cmyk.y = Math.round(cmyk.y * 100);
-            cmyk.k = Math.round(cmyk.k * 100);
-
-            return cmyk;
-        },
-
-        cmyk2rgb: function(color){
-            this.check(color, "cmyk");
-            var r = Math.floor(255 * (1 - color.c / 100) * (1 - color.k / 100));
-            var g = Math.ceil(255 * (1 - color.m / 100) * (1 - color.k / 100));
-            var b = Math.ceil(255 * (1 - color.y / 100) * (1 - color.k / 100));
-
-            return new RGB(r, g, b);
-        },
-
-        hsv2hsl: function(color){
-            this.check(color, "hsv");
-            var h, s, l, d;
-            h = color.h;
-            l = (2 - color.s) * color.v;
-            s = color.s * color.v;
-            if (l === 0) {
-                s = 0;
-            } else {
-                d = l <= 1 ? l : 2 - l;
-                if (d === 0) {
-                    s = 0;
-                } else {
-                    s /= d;
-                }
-            }
-            l /= 2;
-            return new HSL(h, s, l);
-        },
-
-        hsl2hsv: function(color){
-            this.check(color, "hsl");
-            var h, s, v, l;
-            h = color.h;
-            l = color.l * 2;
-            s = color.s * (l <= 1 ? l : 2 - l);
-
-            v = (l + s) / 2;
-
-            if (l + s === 0) {
-                s = 0;
-            } else {
-                s = (2 * s) / (l + s);
-            }
-
-            return new HSV(h, s, v);
-        },
-
-        rgb2websafe: function(color){
-            this.check(color, "rgb");
-            return new RGB(
-                Math.round(color.r / 51) * 51,
-                Math.round(color.g / 51) * 51,
-                Math.round(color.b / 51) * 51
-            );
-        },
-
-        rgba2websafe: function(color){
-            this.check(color, "rgba");
-            var rgbWebSafe = this.rgb2websafe(color);
-            return new RGBA(rgbWebSafe.r, rgbWebSafe.g, rgbWebSafe.b, color.a);
-        },
-
-        hex2websafe: function(color){
-            this.check(color, "hex");
-            return this.rgb2hex(this.rgb2websafe(this.hex2rgb(color)));
-        },
-
-        hsv2websafe: function(color){
-            this.check(color, "hsv");
-            return this.rgb2hsv(this.rgb2websafe(this.toRGB(color)));
-        },
-
-        hsl2websafe: function(color){
-           this.check(color, "hsl");
-            return this.hsv2hsl(this.rgb2hsv(this.rgb2websafe(this.toRGB(color))));
-        },
-
-        cmyk2websafe: function(color){
-            this.check(color, "cmyk");
-            return this.rgb2cmyk(this.rgb2websafe(this.cmyk2rgb(color)));
-        },
-
-        websafe: function(color){
-            if (this.isHEX(color)) return this.hex2websafe(color);
-            if (this.isRGB(color)) return this.rgb2websafe(color);
-            if (this.isRGBA(color)) return this.rgba2websafe(color);
-            if (this.isHSV(color)) return this.hsv2websafe(color);
-            if (this.isHSL(color)) return this.hsl2websafe(color);
-            if (this.isCMYK(color)) return this.cmyk2websafe(color);
-
-            return color;
-        },
-
-        toColor: function(color, type, alpha){
-            var result;
-            switch (type.toLowerCase()) {
-                case "hex":
-                    result = this.toHEX(color);
-                    break;
-                case "rgb":
-                    result = this.toRGB(color);
-                    break;
-                case "rgba":
-                    result = this.toRGBA(color, alpha);
-                    break;
-                case "hsl":
-                    result = this.toHSL(color);
-                    break;
-                case "hsla":
-                    result = this.toHSLA(color, alpha);
-                    break;
-                case "hsv":
-                    result = this.toHSV(color);
-                    break;
-                case "cmyk":
-                    result = this.toCMYK(color);
-                    break;
-                default:
-                    result = color;
-            }
-            return result;
-        },
-
-        toHEX: function(color){
-            return typeof color === "string"
-                ? this.expandHexColor(color)
-                : this.rgb2hex(this.toRGB(color));
-        },
-
-        toRGB: function(color){
-            if (this.isRGB(color)) return color;
-            if (this.isRGBA(color)) return new RGB(color.r, color.g, color.b);
-            if (this.isHSV(color)) return this.hsv2rgb(color);
-            if (this.isHSL(color)) return this.hsv2rgb(this.hsl2hsv(color));
-            if (this.isHSLA(color)) return this.hsv2rgb(this.hsl2hsv(color));
-            if (this.isHEX(color)) return this.hex2rgb(color);
-            if (this.isCMYK(color)) return this.cmyk2rgb(color);
-
-            throw new Error("Unknown color format!");
-        },
-
-        toRGBA: function(color, alpha){
-            if (this.isRGBA(color)) {
-                if (alpha) {
-                    color.a = alpha;
-                }
-                return color;
-            }
-            var rgb = this.toRGB(color);
-            return new RGBA(rgb.r, rgb.g, rgb.b, alpha);
-        },
-
-        toHSV: function(color){
-            return this.rgb2hsv(this.toRGB(color));
-        },
-
-        toHSL: function(color){
-            return this.hsv2hsl(this.rgb2hsv(this.toRGB(color)));
-        },
-
-        toHSLA: function(color, alpha){
-            if (this.isHSLA(color)) {
-                if (alpha) {
-                    color.a = alpha;
-                }
-                return color;
-            }
-            var hsla = this.hsv2hsl(this.rgb2hsv(this.toRGB(color)));
-            hsla.a = alpha;
-            return new HSLA(hsla.h, hsla.s, hsla.l, hsla.a);
-        },
-
-        toCMYK: function(color){
-            return this.rgb2cmyk(this.toRGB(color));
-        },
-
-        grayscale: function(color){
-            var rgb = this.toRGB(color);
-            var type = this.colorType(color).toLowerCase();
-            var gray = Math.round(rgb.r * 0.2125 + rgb.g * 0.7154 + rgb.b * 0.0721);
-            var mono = new RGB(gray, gray, gray);
-
-            return this.toColor(mono, type);
-        },
-
-        darken: function(color, amount){
-            amount = typeof amount !== "undefined" ? amount : 10;
-            return this.lighten(color, -1 * Math.abs(amount));
-        },
-
-        lighten: function(color, amount){
-            var type, res, alpha, ring;
-
-            var calc = function (_color, _amount) {
-                var r, g, b;
-                var col = _color.slice(1);
-
-                var num = parseInt(col, 16);
-                r = (num >> 16) + _amount;
-
-                if (r > 255) r = 255;
-                else if (r < 0) r = 0;
-
-                b = ((num >> 8) & 0x00ff) + _amount;
-
-                if (b > 255) b = 255;
-                else if (b < 0) b = 0;
-
-                g = (num & 0x0000ff) + _amount;
-
-                if (g > 255) g = 255;
-                else if (g < 0) g = 0;
-
-                return "#" + (g | (b << 8) | (r << 16)).toString(16);
-            };
-
-            if (isNaN(amount)) amount = 10;
-
-            ring = amount > 0;
-
-            type = this.colorType(color).toLowerCase();
-
-            if (type === Types.RGBA || type === Types.HSLA) {
-                alpha = color.a;
-            }
-
-            do {
-                res = calc(this.toHEX(color), amount);
-                ring ? amount-- : amount++;
-            } while (res.length < 7);
-
-            return this.toColor(res, type, alpha);
-        },
-
-        hueShift: function(color, angle){
-            var hsv = this.toHSV(color);
-            var type = this.colorType(color).toLowerCase();
-            var h = hsv.h;
-            var alpha;
-
-            h += angle;
-            while (h >= 360.0) h -= 360.0;
-            while (h < 0.0) h += 360.0;
-            hsv.h = h;
-
-            if (type === Types.RGBA || type === Types.HSLA) {
-                alpha = color.a;
-            }
-
-            return this.toColor(hsv, type, alpha);
-        },
-
-        createScheme: function(color, name, format, options){
-            var opt = $.extend({}, ColorsDefaultConfig, options);
-            var i, scheme = [], hsv, rgb, h, s, v;
-            var self = this;
-
-            hsv = this.toHSV(color);
-            h = hsv.h;
-            s = hsv.s;
-            v = hsv.v;
-
-            if (this.isHSV(hsv) === false) {
-                console.warn("The value is a not supported color format!");
-                return false;
-            }
-
-            function convert(source, format) {
-                var result;
-                switch (format) {
-                    case "hex":
-                        result = source.map(function (v) {
-                            return self.toHEX(v);
-                        });
-                        break;
-                    case "rgb":
-                        result = source.map(function (v) {
-                            return self.toRGB(v);
-                        });
-                        break;
-                    case "rgba":
-                        result = source.map(function (v) {
-                            return self.toRGBA(v, opt.alpha);
-                        });
-                        break;
-                    case "hsl":
-                        result = source.map(function (v) {
-                            return self.toHSL(v);
-                        });
-                        break;
-                    case "hsla":
-                        result = source.map(function (v) {
-                            return self.toHSLA(v, opt.alpha);
-                        });
-                        break;
-                    case "cmyk":
-                        result = source.map(function (v) {
-                            return self.toCMYK(v);
-                        });
-                        break;
-                    default:
-                        result = source;
-                }
-
-                return result;
-            }
-
-            function clamp(num, min, max) {
-                return Math.max(min, Math.min(num, max));
-            }
-
-            function toRange(a, b, c) {
-                return a < b ? b : a > c ? c : a;
-            }
-
-            function shift(h, s) {
-                h += s;
-                while (h >= 360.0) h -= 360.0;
-                while (h < 0.0) h += 360.0;
-                return h;
-            }
-
-            switch (name) {
-                case "monochromatic":
-                case "mono":
-                    if (opt.algorithm === 1) {
-                        rgb = this.hsv2rgb(hsv);
-                        rgb.r = toRange(
-                            Math.round(rgb.r + (255 - rgb.r) * opt.tint1),
-                            0,
-                            255
-                        );
-                        rgb.g = toRange(
-                            Math.round(rgb.g + (255 - rgb.g) * opt.tint1),
-                            0,
-                            255
-                        );
-                        rgb.b = toRange(
-                            Math.round(rgb.b + (255 - rgb.b) * opt.tint1),
-                            0,
-                            255
-                        );
-                        scheme.push(this.rgb2hsv(rgb));
-
-                        rgb = this.hsv2rgb(hsv);
-                        rgb.r = toRange(
-                            Math.round(rgb.r + (255 - rgb.r) * opt.tint2),
-                            0,
-                            255
-                        );
-                        rgb.g = toRange(
-                            Math.round(rgb.g + (255 - rgb.g) * opt.tint2),
-                            0,
-                            255
-                        );
-                        rgb.b = toRange(
-                            Math.round(rgb.b + (255 - rgb.b) * opt.tint2),
-                            0,
-                            255
-                        );
-                        scheme.push(this.rgb2hsv(rgb));
-
-                        scheme.push(hsv);
-
-                        rgb = this.hsv2rgb(hsv);
-                        rgb.r = toRange(Math.round(rgb.r * opt.shade1), 0, 255);
-                        rgb.g = toRange(Math.round(rgb.g * opt.shade1), 0, 255);
-                        rgb.b = toRange(Math.round(rgb.b * opt.shade1), 0, 255);
-                        scheme.push(this.rgb2hsv(rgb));
-
-                        rgb = this.hsv2rgb(hsv);
-                        rgb.r = toRange(Math.round(rgb.r * opt.shade2), 0, 255);
-                        rgb.g = toRange(Math.round(rgb.g * opt.shade2), 0, 255);
-                        rgb.b = toRange(Math.round(rgb.b * opt.shade2), 0, 255);
-                        scheme.push(this.rgb2hsv(rgb));
-
-                    } else if (opt.algorithm === 2) {
-
-                        scheme.push(hsv);
-                        for (i = 1; i <= opt.distance; i++) {
-                            v = clamp(v - opt.step, 0, 1);
-                            s = clamp(s - opt.step, 0, 1);
-                            scheme.push(new HSV(h, s, v));
-                        }
-
-                    } else if (opt.algorithm === 3) {
-
-                        scheme.push(hsv);
-                        for (i = 1; i <= opt.distance; i++) {
-                            v = clamp(v - opt.step, 0, 1);
-                            scheme.push(new HSV(h, s, v));
-                        }
-
-                    } else {
-
-                        v = clamp(hsv.v + opt.step * 2, 0, 1);
-                        scheme.push(new HSV(h, s, v));
-
-                        v = clamp(hsv.v + opt.step, 0, 1);
-                        scheme.push(new HSV(h, s, v));
-
-                        scheme.push(hsv);
-                        s = hsv.s;
-                        v = hsv.v;
-
-                        v = clamp(hsv.v - opt.step, 0, 1);
-                        scheme.push(new HSV(h, s, v));
-
-                        v = clamp(hsv.v - opt.step * 2, 0, 1);
-                        scheme.push(new HSV(h, s, v));
-
-                    }
-                    break;
-
-                case "complementary":
-                case "complement":
-                case "comp":
-                    scheme.push(hsv);
-
-                    h = shift(hsv.h, 180.0);
-                    scheme.push(new HSV(h, s, v));
-                    break;
-
-                case "double-complementary":
-                case "double-complement":
-                case "double":
-                    scheme.push(hsv);
-
-                    h = shift(h, 180.0);
-                    scheme.push(new HSV(h, s, v));
-
-                    h = shift(h, opt.angle);
-                    scheme.push(new HSV(h, s, v));
-
-                    h = shift(h, 180.0);
-                    scheme.push(new HSV(h, s, v));
-
-                    break;
-
-                case "analogous":
-                case "analog":
-                    h = shift(h, opt.angle);
-                    scheme.push(new HSV(h, s, v));
-
-                    scheme.push(hsv);
-
-                    h = shift(hsv.h, 0.0 - opt.angle);
-                    scheme.push(new HSV(h, s, v));
-
-                    break;
-
-                case "triadic":
-                case "triad":
-                    scheme.push(hsv);
-                    for (i = 1; i < 3; i++) {
-                        h = shift(h, 120.0);
-                        scheme.push(new HSV(h, s, v));
-                    }
-                    break;
-
-                case "tetradic":
-                case "tetra":
-                    scheme.push(hsv);
-
-                    h = shift(hsv.h, 180.0);
-                    scheme.push(new HSV(h, s, v));
-
-                    h = shift(hsv.h, -1 * opt.angle);
-                    scheme.push(new HSV(h, s, v));
-
-                    h = shift(h, 180.0);
-                    scheme.push(new HSV(h, s, v));
-
-                    break;
-
-                case "square":
-                    scheme.push(hsv);
-                    for (i = 1; i < 4; i++) {
-                        h = shift(h, 90.0);
-                        scheme.push(new HSV(h, s, v));
-                    }
-                    break;
-
-                case "split-complementary":
-                case "split-complement":
-                case "split":
-                    h = shift(h, 180.0 - opt.angle);
-                    scheme.push(new HSV(h, s, v));
-
-                    scheme.push(hsv);
-
-                    h = shift(hsv.h, 180.0 + opt.angle);
-                    scheme.push(new HSV(h, s, v));
-                    break;
-
-                default:
-                    console.warn("Unknown scheme name");
-            }
-
-            return convert(scheme, format);
-        },
-
-        getScheme: function(){
-            return this.createScheme.apply(this, arguments)
-        }
-    };
-
-    var ColorType = function(color, options){
-        this._setValue(color);
-        this._setOptions(options);
-    }
-
-    ColorType.prototype = {
-        _setValue: function(color){
-            if (typeof color === "string") {
-                color = Colors.expandHexColor(Colors.parse(color));
-            }
-            if (!Colors.isColor(color)) {
-                color = "#000000";
-            }
-            this._value = color;
-        },
-
-        _setOptions: function(options){
-            options = typeof options === "object" ? options : {};
-            this._options = $.extend({}, ColorsDefaultConfig, options);
-        },
-
-        getOptions: function(){
-            return this._options;
-        },
-
-        setOptions: function(options){
-            this._setOptions(options);
-        },
-
-        setValue: function(color){
-            this._setValue(color);
-        },
-
-        getValue: function(){
-            return this._value;
-        },
-
-        toRGB: function() {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.toRGB(this._value);
-            return this;
-        },
-
-        rgb: function(){
-            return this._value ? Colors.toRGB(this._value) : undefined;
-        },
-
-        toRGBA: function(alpha) {
-            if (!this._value) {
-                return;
-            }
-            if (Colors.isRGBA(this._value)) {
-                if (alpha) {
-                    this._value = Colors.toRGBA(this._value, alpha);
-                }
-            } else {
-                this._value = Colors.toRGBA(this._value, alpha);
-            }
-            return this;
-        },
-
-        rgba: function(alpha) {
-            return this._value
-                ? Colors.isRGBA(this._value)
-                    ? this._value
-                    : Colors.toRGBA(this._value, alpha)
-                : undefined;
-        },
-
-        toHEX: function() {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.toHEX(this._value);
-            return this;
-        },
-
-        hex: function() {
-            return this._value ? Colors.toHEX(this._value) : undefined;
-        },
-
-        toHSV: function() {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.toHSV(this._value);
-            return this;
-        },
-
-        hsv: function() {
-            return this._value ? Colors.toHSV(this._value) : undefined;
-        },
-
-        toHSL: function() {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.toHSL(this._value);
-            return this;
-        },
-
-        hsl: function() {
-            return this._value ? Colors.toHSL(this._value) : undefined;
-        },
-
-        toHSLA: function(alpha) {
-            if (!this._value) {
-                return;
-            }
-            if (Colors.isHSLA(this._value)) {
-                if (alpha) {
-                    this._value = Colors.toHSLA(this._value, alpha);
-                }
-            } else {
-                this._value = Colors.toHSLA(this._value, alpha);
-            }
-            return this;
-        },
-
-        hsla: function(alpha) {
-            return this._value
-                ? Colors.isHSLA(this._value)
-                    ? this._value
-                    : Colors.toHSLA(this._value, alpha)
-                : undefined;
-        },
-
-        toCMYK: function() {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.toCMYK(this._value);
-            return this;
-        },
-
-        cmyk: function() {
-            return this._value ? Colors.toCMYK(this._value) : undefined;
-        },
-
-        toWebsafe: function() {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.websafe(this._value);
-            return this;
-        },
-
-        websafe: function() {
-            return this._value ? Colors.websafe(this._value) : undefined;
-        },
-
-        toString: function() {
-            return this._value ? Colors.colorToString(this._value) : undefined;
-        },
-
-        darken: function(amount) {
-            amount = amount || 10;
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.darken(this._value, amount);
-            return this;
-        },
-
-        lighten: function(amount) {
-            amount = amount || 10;
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.lighten(this._value, amount);
-            return this;
-        },
-
-        isDark: function() {
-            return this._value ? Colors.isDark(this._value) : undefined;
-        },
-
-        isLight: function() {
-            return this._value ? Colors.isLight(this._value) : undefined;
-        },
-
-        hueShift: function(angle) {
-            if (!this._value) {
-                return;
-            }
-            this._value = Colors.hueShift(this._value, angle);
-            return this;
-        },
-
-        grayscale: function() {
-            if (!this._value || this.type === Types.UNKNOWN) {
-                return;
-            }
-            this._value = Colors.grayscale(
-                this._value,
-                ("" + this.type).toLowerCase()
-            );
-            return this;
-        },
-
-        type: function() {
-            return Colors.colorType(this._value);
-        },
-
-        createScheme: function(name, format, options) {
-            return this._value
-                ? Colors.createScheme(this._value, name, format, options)
-                : undefined;
-        },
-
-        getScheme: function(){
-            return this.createScheme.apply(this, arguments);
-        },
-
-        equal: function(color) {
-            return Colors.equal(this._value, color);
-        }
-    }
-
-    Metro.colors = Colors.init();
-    window.Color = Metro.Color = ColorType;
-
-    if (window.METRO_GLOBAL_COMMON === true) {
-        window.Colors = Metro.colors;
-    }
-
-}(Metro, m4q));
-
-(function(Metro, $) {
-   'use strict';
-   var Utils = Metro.utils;
-   var Export = {
-
-        init: function(){
-            return this;
-        },
-
-        options: {
-            csvDelimiter: "\t",
-            csvNewLine: "\r\n",
-            includeHeader: true
-        },
-
-        setup: function(options){
-            this.options = $.extend({}, this.options, options);
-            return this;
-        },
-
-        base64: function(data){
-            return window.btoa(unescape(encodeURIComponent(data)));
-        },
-
-        b64toBlob: function (b64Data, contentType, sliceSize) {
-            contentType = contentType || '';
-            sliceSize = sliceSize || 512;
-
-            var byteCharacters = window.atob(b64Data);
-            var byteArrays = [];
-
-            var offset;
-            for (offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-                var slice = byteCharacters.slice(offset, offset + sliceSize);
-
-                var byteNumbers = new Array(slice.length);
-                var i;
-                for (i = 0; i < slice.length; i = i + 1) {
-                    byteNumbers[i] = slice.charCodeAt(i);
-                }
-
-                var byteArray = new window.Uint8Array(byteNumbers);
-
-                byteArrays.push(byteArray);
-            }
-
-            return new Blob(byteArrays, {
-                type: contentType
-            });
-        },
-
-        tableToCSV: function(table, filename, options){
-            var o = this.options;
-            var body, head, data = "";
-            var i, j, row, cell;
-
-            o = $.extend({}, o, options);
-
-            table = $(table)[0];
-
-            if (Utils.bool(o.includeHeader)) {
-
-                head = table.querySelectorAll("thead")[0];
-
-                for(i = 0; i < head.rows.length; i++) {
-                    row = head.rows[i];
-                    for(j = 0; j < row.cells.length; j++){
-                        cell = row.cells[j];
-                        data += (j ? o.csvDelimiter : '') + cell.textContent.trim();
-                    }
-                    data += o.csvNewLine;
-                }
-            }
-
-            body = table.querySelectorAll("tbody")[0];
-
-            for(i = 0; i < body.rows.length; i++) {
-                row = body.rows[i];
-                for(j = 0; j < row.cells.length; j++){
-                    cell = row.cells[j];
-                    data += (j ? o.csvDelimiter : '') + cell.textContent.trim();
-                }
-                data += o.csvNewLine;
-            }
-
-            if (Utils.isValue(filename)) {
-                return this.createDownload(this.base64("\uFEFF" + data), 'application/csv', filename);
-            }
-
-            return data;
-        },
-
-        createDownload: function (data, contentType, filename) {
-            var blob, anchor, url;
-
-            anchor = document.createElement('a');
-            anchor.style.display = "none";
-            document.body.appendChild(anchor);
-
-            blob = this.b64toBlob(data, contentType);
-
-            url = window.URL.createObjectURL(blob);
-            anchor.href = url;
-            anchor.download = filename || Utils.elementId("download");
-            anchor.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(anchor);
-            return true;
-        }
-    };
-
-    Metro.export = Export.init();
-
-    if (window.METRO_GLOBAL_COMMON === true) {
-        window.Export = Metro.export;
-    }
-}(Metro, m4q));
-
-(function(Metro) {
-    'use strict';
-    Metro.md5 = function (string) {
-        function RotateLeft(lValue, iShiftBits) {
-            return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
-        }
-
-        function AddUnsigned(lX,lY) {
-            var lX4,lY4,lX8,lY8,lResult;
-            lX8 = (lX & 0x80000000);
-            lY8 = (lY & 0x80000000);
-            lX4 = (lX & 0x40000000);
-            lY4 = (lY & 0x40000000);
-            lResult = (lX & 0x3FFFFFFF)+(lY & 0x3FFFFFFF);
-            if (lX4 & lY4) {
-                return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
-            }
-            if (lX4 | lY4) {
-                if (lResult & 0x40000000) {
-                    return (lResult ^ 0xC0000000 ^ lX8 ^ lY8);
-                } else {
-                    return (lResult ^ 0x40000000 ^ lX8 ^ lY8);
-                }
-            } else {
-                return (lResult ^ lX8 ^ lY8);
-            }
-        }
-
-        function F(x,y,z) { return (x & y) | ((~x) & z); }
-        function G(x,y,z) { return (x & z) | (y & (~z)); }
-        function H(x,y,z) { return (x ^ y ^ z); }
-        function I(x,y,z) { return (y ^ (x | (~z))); }
-
-        function FF(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(F(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        }
-
-        function GG(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(G(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        }
-
-        function HH(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(H(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        }
-
-        function II(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(I(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        }
-
-        function ConvertToWordArray(string) {
-            var lWordCount;
-            var lMessageLength = string.length;
-            var lNumberOfWords_temp1=lMessageLength + 8;
-            var lNumberOfWords_temp2=(lNumberOfWords_temp1-(lNumberOfWords_temp1 % 64))/64;
-            var lNumberOfWords = (lNumberOfWords_temp2+1)*16;
-            var lWordArray=Array(lNumberOfWords-1);
-            var lBytePosition = 0;
-            var lByteCount = 0;
-            while ( lByteCount < lMessageLength ) {
-                lWordCount = (lByteCount-(lByteCount % 4))/4;
-                lBytePosition = (lByteCount % 4)*8;
-                lWordArray[lWordCount] = (lWordArray[lWordCount] | (string.charCodeAt(lByteCount)<<lBytePosition));
-                lByteCount++;
-            }
-            lWordCount = (lByteCount-(lByteCount % 4))/4;
-            lBytePosition = (lByteCount % 4)*8;
-            lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80<<lBytePosition);
-            lWordArray[lNumberOfWords-2] = lMessageLength<<3;
-            lWordArray[lNumberOfWords-1] = lMessageLength>>>29;
-            return lWordArray;
-        }
-
-        function WordToHex(lValue) {
-            var WordToHexValue="",WordToHexValue_temp="",lByte,lCount;
-            for (lCount = 0;lCount<=3;lCount++) {
-                lByte = (lValue>>>(lCount*8)) & 255;
-                WordToHexValue_temp = "0" + lByte.toString(16);
-                WordToHexValue = WordToHexValue + WordToHexValue_temp.substr(WordToHexValue_temp.length-2,2);
-            }
-            return WordToHexValue;
-        }
-
-        function Utf8Encode(string) {
-            string = string.replace(/\r\n/g,"\n");
-            var utftext = "";
-
-            for (var n = 0; n < string.length; n++) {
-
-                var c = string.charCodeAt(n);
-
-                if (c < 128) {
-                    utftext += String.fromCharCode(c);
-                }
-                else if((c > 127) && (c < 2048)) {
-                    utftext += String.fromCharCode((c >> 6) | 192);
-                    utftext += String.fromCharCode((c & 63) | 128);
-                }
-                else {
-                    utftext += String.fromCharCode((c >> 12) | 224);
-                    utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-                    utftext += String.fromCharCode((c & 63) | 128);
-                }
-
-            }
-
-            return utftext;
-        }
-
-        var x=[];
-        var k,AA,BB,CC,DD,a,b,c,d;
-        var S11=7, S12=12, S13=17, S14=22;
-        var S21=5, S22=9 , S23=14, S24=20;
-        var S31=4, S32=11, S33=16, S34=23;
-        var S41=6, S42=10, S43=15, S44=21;
-
-        string = Utf8Encode(string);
-
-        x = ConvertToWordArray(string);
-
-        a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
-
-        for (k=0;k<x.length;k+=16) {
-            AA=a; BB=b; CC=c; DD=d;
-            a=FF(a,b,c,d,x[k], S11,0xD76AA478);
-            d=FF(d,a,b,c,x[k+1], S12,0xE8C7B756);
-            c=FF(c,d,a,b,x[k+2], S13,0x242070DB);
-            b=FF(b,c,d,a,x[k+3], S14,0xC1BDCEEE);
-            a=FF(a,b,c,d,x[k+4], S11,0xF57C0FAF);
-            d=FF(d,a,b,c,x[k+5], S12,0x4787C62A);
-            c=FF(c,d,a,b,x[k+6], S13,0xA8304613);
-            b=FF(b,c,d,a,x[k+7], S14,0xFD469501);
-            a=FF(a,b,c,d,x[k+8], S11,0x698098D8);
-            d=FF(d,a,b,c,x[k+9], S12,0x8B44F7AF);
-            c=FF(c,d,a,b,x[k+10],S13,0xFFFF5BB1);
-            b=FF(b,c,d,a,x[k+11],S14,0x895CD7BE);
-            a=FF(a,b,c,d,x[k+12],S11,0x6B901122);
-            d=FF(d,a,b,c,x[k+13],S12,0xFD987193);
-            c=FF(c,d,a,b,x[k+14],S13,0xA679438E);
-            b=FF(b,c,d,a,x[k+15],S14,0x49B40821);
-            a=GG(a,b,c,d,x[k+1], S21,0xF61E2562);
-            d=GG(d,a,b,c,x[k+6], S22,0xC040B340);
-            c=GG(c,d,a,b,x[k+11],S23,0x265E5A51);
-            b=GG(b,c,d,a,x[k], S24,0xE9B6C7AA);
-            a=GG(a,b,c,d,x[k+5], S21,0xD62F105D);
-            d=GG(d,a,b,c,x[k+10],S22,0x2441453);
-            c=GG(c,d,a,b,x[k+15],S23,0xD8A1E681);
-            b=GG(b,c,d,a,x[k+4], S24,0xE7D3FBC8);
-            a=GG(a,b,c,d,x[k+9], S21,0x21E1CDE6);
-            d=GG(d,a,b,c,x[k+14],S22,0xC33707D6);
-            c=GG(c,d,a,b,x[k+3], S23,0xF4D50D87);
-            b=GG(b,c,d,a,x[k+8], S24,0x455A14ED);
-            a=GG(a,b,c,d,x[k+13],S21,0xA9E3E905);
-            d=GG(d,a,b,c,x[k+2], S22,0xFCEFA3F8);
-            c=GG(c,d,a,b,x[k+7], S23,0x676F02D9);
-            b=GG(b,c,d,a,x[k+12],S24,0x8D2A4C8A);
-            a=HH(a,b,c,d,x[k+5], S31,0xFFFA3942);
-            d=HH(d,a,b,c,x[k+8], S32,0x8771F681);
-            c=HH(c,d,a,b,x[k+11],S33,0x6D9D6122);
-            b=HH(b,c,d,a,x[k+14],S34,0xFDE5380C);
-            a=HH(a,b,c,d,x[k+1], S31,0xA4BEEA44);
-            d=HH(d,a,b,c,x[k+4], S32,0x4BDECFA9);
-            c=HH(c,d,a,b,x[k+7], S33,0xF6BB4B60);
-            b=HH(b,c,d,a,x[k+10],S34,0xBEBFBC70);
-            a=HH(a,b,c,d,x[k+13],S31,0x289B7EC6);
-            d=HH(d,a,b,c,x[k], S32,0xEAA127FA);
-            c=HH(c,d,a,b,x[k+3], S33,0xD4EF3085);
-            b=HH(b,c,d,a,x[k+6], S34,0x4881D05);
-            a=HH(a,b,c,d,x[k+9], S31,0xD9D4D039);
-            d=HH(d,a,b,c,x[k+12],S32,0xE6DB99E5);
-            c=HH(c,d,a,b,x[k+15],S33,0x1FA27CF8);
-            b=HH(b,c,d,a,x[k+2], S34,0xC4AC5665);
-            a=II(a,b,c,d,x[k], S41,0xF4292244);
-            d=II(d,a,b,c,x[k+7], S42,0x432AFF97);
-            c=II(c,d,a,b,x[k+14],S43,0xAB9423A7);
-            b=II(b,c,d,a,x[k+5], S44,0xFC93A039);
-            a=II(a,b,c,d,x[k+12],S41,0x655B59C3);
-            d=II(d,a,b,c,x[k+3], S42,0x8F0CCC92);
-            c=II(c,d,a,b,x[k+10],S43,0xFFEFF47D);
-            b=II(b,c,d,a,x[k+1], S44,0x85845DD1);
-            a=II(a,b,c,d,x[k+8], S41,0x6FA87E4F);
-            d=II(d,a,b,c,x[k+15],S42,0xFE2CE6E0);
-            c=II(c,d,a,b,x[k+6], S43,0xA3014314);
-            b=II(b,c,d,a,x[k+13],S44,0x4E0811A1);
-            a=II(a,b,c,d,x[k+4], S41,0xF7537E82);
-            d=II(d,a,b,c,x[k+11],S42,0xBD3AF235);
-            c=II(c,d,a,b,x[k+2], S43,0x2AD7D2BB);
-            b=II(b,c,d,a,x[k+9], S44,0xEB86D391);
-            a=AddUnsigned(a,AA);
-            b=AddUnsigned(b,BB);
-            c=AddUnsigned(c,CC);
-            d=AddUnsigned(d,DD);
-        }
-
-        var temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
-
-        return temp.toLowerCase();
-    };
-
-    if (window.METRO_GLOBAL_COMMON === true) {
-        window.md5 = Metro.md5;
-    }
-}(Metro, m4q));
-
-(function(Metro, $){
-    'use strict';
-    var Utils = Metro.utils;
-    var AccordionDefaultConfig = {
-        accordionDeferred: 0,
-        showMarker: true,
-        material: false,
-        duration: METRO_ANIMATION_DURATION,
-        oneFrame: true,
-        showActive: true,
-        activeFrameClass: "",
-        activeHeadingClass: "",
-        activeContentClass: "",
-        onFrameOpen: Metro.noop,
-        onFrameBeforeOpen: Metro.noop_true,
-        onFrameClose: Metro.noop,
-        onFrameBeforeClose: Metro.noop_true,
-        onAccordionCreate: Metro.noop
-    };
-
-    Metro.accordionSetup = function(options){
-        AccordionDefaultConfig = $.extend({}, AccordionDefaultConfig, options);
-    };
-
-    if (typeof window["metroAccordionSetup"] !== undefined) {
-        Metro.accordionSetup(window["metroAccordionSetup"]);
-    }
-
-    Metro.Component('accordion', {
-        init: function( options, elem ) {
-            this._super(elem, options, AccordionDefaultConfig);
-            return this;
-        },
-
-        _create: function(){
-            var element = this.element;
-
-            this._createStructure();
-            this._createEvents();
-
-            this._fireEvent('accordionCreate', {
-                element: element
-            });
-        },
-
-        _createStructure: function(){
-            var that = this, element = this.element, o = this.options;
-            var frames = element.children(".frame");
-            var active = element.children(".frame.active");
-            var frame_to_open;
-
-            element.addClass("accordion");
-
-            if (o.showMarker === true) {
-                element.addClass("marker-on");
-            }
-
-            if (o.material === true) {
-                element.addClass("material");
-            }
-
-            if (active.length === 0) {
-                frame_to_open = frames[0];
-            } else {
-                frame_to_open = active[0];
-            }
-
-            this._hideAll();
-
-            if (o.showActive === true) {
-                if (o.oneFrame === true) {
-                    this._openFrame(frame_to_open);
-                } else {
-                    $.each(active, function(){
-                        that._openFrame(this);
-                    });
-                }
-            }
-        },
-
-        _createEvents: function(){
-            var that = this, element = this.element, o = this.options;
-            var active = element.children(".frame.active");
-
-            element.on(Metro.events.click, ".heading", function(){
-                var heading = $(this);
-                var frame = heading.parent();
-
-                if (heading.closest(".accordion")[0] !== element[0]) {
-                    return false;
-                }
-
-                if (frame.hasClass("active")) {
-                    if (active.length === 1 && o.oneFrame) {
-                        /* eslint-disable-next-line */
-
-                    } else {
-                        that._closeFrame(frame);
-                    }
-                } else {
-                    that._openFrame(frame);
-                }
-            });
-        },
-
-        _openFrame: function(f){
-            var element = this.element, o = this.options;
-            var frame = $(f);
-
-            if (Utils.exec(o.onFrameBeforeOpen, [frame[0]], element[0]) === false) {
-                return false;
-            }
-
-            if (o.oneFrame === true) {
-                this._closeAll(frame[0]);
-            }
-
-            frame.addClass("active " + o.activeFrameClass);
-            frame.children(".heading").addClass(o.activeHeadingClass);
-            frame.children(".content").addClass(o.activeContentClass).slideDown(o.duration);
-
-            this._fireEvent("frameOpen", {
-                frame: frame[0]
-            });
-        },
-
-        _closeFrame: function(f){
-            var element = this.element, o = this.options;
-            var frame = $(f);
-
-            if (!frame.hasClass("active")) {
-                return ;
-            }
-
-            if (Utils.exec(o.onFrameBeforeClose, [frame[0]], element[0]) === false) {
-                return ;
-            }
-
-            frame.removeClass("active " + o.activeFrameClass);
-            frame.children(".heading").removeClass(o.activeHeadingClass);
-            frame.children(".content").removeClass(o.activeContentClass).slideUp(o.duration);
-
-            this._fireEvent("frameClose", {
-                frame: frame[0]
-            });
-        },
-
-        _closeAll: function(skip){
-            var that = this, element = this.element;
-            var frames = element.children(".frame");
-
-            $.each(frames, function(){
-                if (skip === this) return;
-                that._closeFrame(this);
-            });
-        },
-
-        _hideAll: function(){
-            var element = this.element;
-            var frames = element.children(".frame");
-
-            $.each(frames, function(){
-                $(this).children(".content").hide();
-            });
-        },
-
-        _openAll: function(){
-            var that = this, element = this.element;
-            var frames = element.children(".frame");
-
-            $.each(frames, function(){
-                that._openFrame(this);
-            });
-        },
-
-        /* eslint-disable-next-line */
-        changeAttribute: function(attributeName){
-        },
-
-        destroy: function(){
-            var element = this.element;
-            element.off(Metro.events.click, ".heading");
-            return element;
-        }
-    });
-}(Metro, m4q));
-
-(function(Metro, $) {
-    'use strict';
-    var ActivityDefaultConfig = {
-        activityDeferred: 0,
-        type: "ring",
-        style: "light",
-        size: 64,
-        radius: 20,
-        onActivityCreate: Metro.noop
-    };
-
-    Metro.activitySetup = function(options){
-        ActivityDefaultConfig = $.extend({}, ActivityDefaultConfig, options);
-    };
-
-    if (typeof window["metroActivitySetup"] !== undefined) {
-        Metro.activitySetup(window["metroActivitySetup"]);
-    }
-
-    Metro.Component('activity', {
-        init: function( options, elem ) {
-            this._super(elem, options, ActivityDefaultConfig);
-            return this;
-        },
-
-        _create: function(){
-            var element = this.element, o = this.options;
-            var i, wrap;
-
-            element
-                .html('')
-                .addClass(o.style + "-style")
-                .addClass("activity-" + o.type);
-
-            function _metro(){
-                for(i = 0; i < 5 ; i++) {
-                    $("<div/>").addClass('circle').appendTo(element);
-                }
-            }
-
-            function _square(){
-                for(i = 0; i < 4 ; i++) {
-                    $("<div/>").addClass('square').appendTo(element);
-                }
-            }
-
-            function _cycle(){
-                $("<div/>").addClass('cycle').appendTo(element);
-            }
-
-            function _ring(){
-                for(i = 0; i < 5 ; i++) {
-                    wrap = $("<div/>").addClass('wrap').appendTo(element);
-                    $("<div/>").addClass('circle').appendTo(wrap);
-                }
-            }
-
-            function _simple(){
-                $('<svg class="circular"><circle class="path" cx="'+o.size/2+'" cy="'+o.size/2+'" r="'+o.radius+'" fill="none" stroke-width="2" stroke-miterlimit="10"/></svg>').appendTo(element);
-            }
-
-            switch (o.type) {
-                case 'metro': _metro(); break;
-                case 'square': _square(); break;
-                case 'cycle': _cycle(); break;
-                case 'simple': _simple(); break;
-                default: _ring();
-            }
-
-            this._fireEvent("activity-create", {
-                element: element
-            })
-        },
-
-        /*eslint-disable-next-line*/
-        changeAttribute: function(attributeName){
-        },
-
-        destroy: function(){
-            return this.element;
-        }
-    });
-
-    Metro.activity = {
-        open: function(options){
-            var o = options || {};
-            var activity = '<div data-role="activity" data-type="'+( o.type ? o.type : 'cycle' )+'" data-style="'+( o.style ? o.style : 'color' )+'"></div>';
-            var text = o.text ? '<div class="text-center">'+o.text+'</div>' : '';
-
-            return Metro.dialog.create({
-                content: activity + text,
-                defaultAction: false,
-                clsContent: "d-flex flex-column flex-justify-center flex-align-center bg-transparent no-shadow w-auto",
-                clsDialog: "no-border no-shadow bg-transparent global-dialog",
-                autoHide: o.autoHide ? o.autoHide : 0,
-                overlayClickClose: o.overlayClickClose === true,
-                overlayColor: o.overlayColor ? o.overlayColor : '#000000',
-                overlayAlpha: o.overlayAlpha ? o.overlayAlpha : 0.5,
-                clsOverlay: "global-overlay"
-            });
-        },
-
-        close: function(a){
-            Metro.dialog.close(a);
-        }
-    };
-}(Metro, m4q));
-
-(function(Metro, $) {
-    'use strict';
-    var Utils = Metro.utils;
-    var AdblockDefaultConfig = {
-        adblockDeferred: 0,
-        checkInterval: 1000,
-        fireOnce: true,
-        checkStop: 10,
-        onAlert: Metro.noop,
-        onFishingStart: Metro.noop,
-        onFishingDone: Metro.noop
-    };
-
-    Metro.adblockSetup = function(options){
-        AdblockDefaultConfig = $.extend({}, AdblockDefaultConfig, options);
-    };
-
-    if (typeof window["metroAdblockSetup"] !== undefined) {
-        Metro.adblockSetup(window["metroAdblockSetup"]);
-    }
-
-    var Adblock = {
-        bite: function(){
-            var classes = "adblock-bite adsense google-adsense dblclick advert topad top_ads topAds textads sponsoredtextlink_container show_ads right-banner rekl mpu module-ad mid_ad mediaget horizontal_ad headerAd contentAd brand-link bottombanner bottom_ad_block block_ad bannertop banner-right banner-body b-banner b-article-aside__banner b-advert adwrapper adverts advertisment advertisement:not(body) advertise advert_list adtable adsense adpic adlist adleft adinfo adi adholder adframe addiv ad_text ad_space ad_right ad_links ad_body ad_block ad_Right adTitle adText";
-            $("<div>")
-                .addClass(classes.split(" ").shuffle().join(" "))
-                .css({
-                    position: "fixed",
-                    height: 1,
-                    width: 1,
-                    overflow: "hidden",
-                    visibility: "visible",
-                    top: 0,
-                    left: 0
-                })
-                .append($("<a href='https://dblclick.net'>").html('dblclick.net'))
-                .appendTo('body');
-
-            if (Adblock.options.adblockDeferred) {
-                setTimeout(function () {
-                    Adblock.fishing();
-                }, Adblock.options.adblockDeferred);
-            } else this.fishing();
-        },
-
-        fishing: function(){
-            var o = Adblock.options;
-            var checks = typeof o.fireOnce === "number" ? o.fireOnce : 0;
-            var checkStop = o.checkStop;
-            var interval = false;
-            var run = function(){
-                var a = $(".adsense.google-adsense.dblclick.advert.adblock-bite");
-                var b = a.find("a");
-                var done = function(){
-                    clearInterval(interval);
-
-                    Utils.exec(o.onFishingDone);
-                    $(window).fire("fishing-done");
-
-                    a.remove();
-                };
-
-                if (   !a.length
-                    || !b.length
-                    || a.css("display").indexOf('none') > -1
-                    || b.css("display").indexOf('none') > -1
-                ) {
-
-                    Utils.exec(Adblock.options.onAlert);
-                    $(window).fire("adblock-alert");
-
-                    if (Adblock.options.fireOnce === true) {
-                        done();
-                    } else {
-                        checks--;
-                        if (checks === 0) {
-                            done();
-                        }
-                    }
-                } else {
-                    if (checkStop !== false) {
-                        checkStop--;
-                        if (checkStop === 0) {
-                            done();
-                        }
-                    }
-                }
-            };
-
-            Utils.exec(o.onFishingStart);
-            $(window).fire("fishing-start");
-
-            interval = setInterval(function(){
-                run();
-            }, Adblock.options.checkInterval);
-
-            run();
-        }
-    };
-
-    Metro.Adblock = Adblock;
-
-    $(function(){
-        Adblock.options = $.extend({}, AdblockDefaultConfig);
-        $(window).on("metro-initiated", function(){
-            Adblock.bite();
-        });
-    });
-}(Metro, m4q));
-
-(function(Metro, $) {
-    'use strict';
-    var Colors = Metro.colors;
     var Utils = Metro.utils;
     var AppBarDefaultConfig = {
         appbarDeferred: 0,
@@ -9275,6 +8108,8 @@ $.noConflict = function() {
         duration: 100,
         onMenuOpen: Metro.noop,
         onMenuClose: Metro.noop,
+        onBeforeMenuOpen: Metro.noop,
+        onBeforeMenuClose: Metro.noop,
         onMenuCollapse: Metro.noop,
         onMenuExpand: Metro.noop,
         onAppBarCreate: Metro.noop
@@ -9310,7 +8145,7 @@ $.noConflict = function() {
 
         _createStructure: function () {
             var element = this.element, o = this.options;
-            var hamburger, menu;
+            var hamburger, menu, elementColor = Utils.getStyleOne(element, "background-color");
 
             element.addClass("app-bar");
 
@@ -9321,7 +8156,7 @@ $.noConflict = function() {
                     $("<span>").addClass("line").appendTo(hamburger);
                 }
 
-                if (Colors.isLight(Utils.computedRgbToHex(Utils.getStyleOne(element, "background-color"))) === true) {
+                if (elementColor === "rgba(0, 0, 0, 0)" || Metro.colors.isLight(elementColor) === true) {
                     hamburger.addClass("dark");
                 }
             }
@@ -9373,12 +8208,10 @@ $.noConflict = function() {
                 if (o.expand !== true) {
                     if (Utils.isValue(o.expandPoint) && Utils.mediaExist(o.expandPoint)) {
                         element.addClass("app-bar-expand");
-                        Utils.exec(o.onMenuExpand, null, element[0]);
-                        element.fire("menuexpand");
+                        that._fireEvent("menu-expand");
                     } else {
                         element.removeClass("app-bar-expand");
-                        Utils.exec(o.onMenuCollapse, null, element[0]);
-                        element.fire("menucollapse");
+                        that._fireEvent("menu-collapse");
                     }
                 }
 
@@ -9401,34 +8234,40 @@ $.noConflict = function() {
         },
 
         close: function () {
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
             var menu = element.find(".app-bar-menu");
             var hamburger = element.find(".hamburger");
+
+            that._fireEvent("before-menu-close", {
+                menu: menu[0]
+            });
 
             menu.slideUp(o.duration, function () {
                 menu.addClass("collapsed").removeClass("opened");
                 hamburger.removeClass("active");
-            });
 
-            Utils.exec(o.onMenuClose, [menu[0]], element[0]);
-            element.fire("menuclose", {
-                menu: menu[0]
+                that._fireEvent("menu-close", {
+                    menu: menu[0]
+                });
             });
         },
 
         open: function () {
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
             var menu = element.find(".app-bar-menu");
             var hamburger = element.find(".hamburger");
+
+            that._fireEvent("before-menu-open", {
+                menu: menu[0]
+            });
 
             menu.slideDown(o.duration, function () {
                 menu.removeClass("collapsed").addClass("opened");
                 hamburger.addClass("active");
-            });
 
-            Utils.exec(o.onMenuOpen, [menu[0]], element[0]);
-            element.fire("menuopen", {
-                menu: menu[0]
+                that._fireEvent("menu-open", {
+                    menu: menu[0]
+                });
             });
         },
 
@@ -10320,6 +9159,26 @@ $.noConflict = function() {
     'use strict';
     var Utils = Metro.utils;
     var CalendarDefaultConfig = {
+        showCoincidentalDay: true,
+        events: null,
+        startContent: "days",
+        showTime: false,
+        initialTime: null,
+        initialHours: null,
+        initialMinutes: null,
+        clsCalendarTime: "",
+        clsTime: "",
+        clsTimeHours: "",
+        clsTimeMinutes: "",
+        clsTimeButton: "",
+        clsTimeButtonPlus: "",
+        clsTimeButtonMinus: "",
+        labelTimeHours: null,
+        labelTimeMinutes: null,
+
+        animationContent: true,
+        animationSpeed: 10,
+
         calendarDeferred: 0,
         dayBorder: false,
         excludeDay: null,
@@ -10356,6 +9215,7 @@ $.noConflict = function() {
         clsTodayButton: "",
         clsClearButton: "",
         clsDoneButton: "",
+        clsEventCounter: "",
         isDialog: false,
         ripple: false,
         rippleColor: "#cccccc",
@@ -10374,11 +9234,16 @@ $.noConflict = function() {
         onClear: Metro.noop,
         onDone: Metro.noop,
         onDayClick: Metro.noop,
-        onDayDraw: Metro.noop,
+        onDrawDay: Metro.noop,
+        onDrawMonth: Metro.noop,
+        onDrawYear: Metro.noop,
         onWeekDayClick: Metro.noop,
         onWeekNumberClick: Metro.noop,
         onMonthChange: Metro.noop,
         onYearChange: Metro.noop,
+        onTimeChange: Metro.noop,
+        onHoursChange: Metro.noop,
+        onMinutesChange: Metro.noop,
         onCalendarCreate: Metro.noop
     };
 
@@ -10409,13 +9274,18 @@ $.noConflict = function() {
                 exclude: [],
                 special: [],
                 excludeDay: [],
+                events: [],
                 min: null,
                 max: null,
                 locale: null,
                 minYear: null,
                 maxYear: null,
                 offset: null,
-                id: Utils.elementId("calendar")
+                id: Utils.elementId("calendar"),
+                time: [new Date().getHours(), new Date().getMinutes()],
+                content: "days",
+                yearDistance: 11,
+                yearGroupStart: now.getFullYear()
             });
 
             return this;
@@ -10424,11 +9294,24 @@ $.noConflict = function() {
         _create: function(){
             var element = this.element, o = this.options;
 
+            this.content = o.startContent;
             this.minYear = this.current.year - this.options.yearsBefore;
             this.maxYear = this.current.year + this.options.yearsAfter;
             this.offset = (new Date()).getTimezoneOffset() / 60 + 1;
 
             element.html("").addClass("calendar " + (o.compact === true ? "compact" : "")).addClass(o.clsCalendar);
+
+            if (Utils.isValue(o.initialTime)) {
+                this.time = o.initialTime.split(":");
+            }
+
+            if (Utils.isValue(o.initialHours) && Utils.between(o.initialHours, 0, 23, true)) {
+                this.time[0] = parseInt(o.initialHours);
+            }
+
+            if (Utils.isValue(o.initialMinutes) && Utils.between(o.initialMinutes, 0, 59, true)) {
+                this.time[1] = parseInt(o.initialMinutes);
+            }
 
             if (o.dayBorder === true) {
                 element.addClass("day-border");
@@ -10448,6 +9331,10 @@ $.noConflict = function() {
 
             if (Utils.isValue(o.special)) {
                 this._dates2array(o.special, 'special');
+            }
+
+            if (Utils.isValue(o.events)) {
+                this._dates2array(o.events, 'events');
             }
 
             if (o.buttons !== false) {
@@ -10497,9 +9384,7 @@ $.noConflict = function() {
                 });
             }
 
-            this._fireEvent("calendar-create", {
-                element: element
-            });
+            this._fireEvent("calendar-create");
         },
 
         _dates2array: function(val, category){
@@ -10542,15 +9427,13 @@ $.noConflict = function() {
                 }
             }, {ns: this.id});
 
-            element.on(Metro.events.click, function(){
-                var months = element.find(".calendar-months");
-                var years = element.find(".calendar-years");
-                if (months.hasClass("open")) {
-                    months.removeClass("open");
+            element.on(Metro.events.click, ".prev-year-group, .next-year-group", function(){
+                if ($(this).hasClass("prev-year-group")) {
+                    that.yearGroupStart -= that.yearDistance;
+                } else {
+                    that.yearGroupStart += that.yearDistance;
                 }
-                if (years.hasClass("open")) {
-                    years.removeClass("open");
-                }
+                that._drawContent();
             });
 
             element.on(Metro.events.click, ".prev-month, .next-month, .prev-year, .next-year", function(){
@@ -10589,14 +9472,12 @@ $.noConflict = function() {
                 setTimeout(function(){
                     that._drawContent();
                     if (el.hasClass("prev-month") || el.hasClass("next-month")) {
-                        Utils.exec(o.onMonthChange, [that.current, element], element[0]);
-                        element.fire("monthchange", {
+                        that._fireEvent("month-change", {
                             current: that.current
                         });
                     }
                     if (el.hasClass("prev-year") || el.hasClass("next-year")) {
-                        Utils.exec(o.onYearChange, [that.current, element], element[0]);
-                        element.fire("yearchange", {
+                        that._fireEvent("year-change", {
                             current: that.current
                         });
                     }
@@ -10605,29 +9486,31 @@ $.noConflict = function() {
 
             element.on(Metro.events.click, ".button.today", function(){
                 that.toDay();
-                Utils.exec(o.onToday, [that.today, element]);
-                element.fire("today", {
-                    today: that.today
+                that._fireEvent("today", {
+                    today: that.today,
+                    time: that.time
                 });
             });
 
             element.on(Metro.events.click, ".button.clear", function(){
                 that.selected = [];
+                that.time = [new Date().getHours(), new Date().getMinutes()];
+                that.yearGroupStart = new Date().getFullYear();
                 that._drawContent();
-                Utils.exec(o.onClear, [element]);
-                element.fire("clear");
+                that._fireEvent("clear");
             });
 
             element.on(Metro.events.click, ".button.cancel", function(){
                 that._drawContent();
-                Utils.exec(o.onCancel, [element]);
-                element.fire("cancel");
+                that._fireEvent("cancel");
             });
 
             element.on(Metro.events.click, ".button.done", function(){
                 that._drawContent();
-                Utils.exec(o.onDone, [that.selected, element]);
-                element.fire("done");
+                that._fireEvent("done", {
+                    selected: that.selected,
+                    time: that.time
+                });
             });
 
             if (o.weekDayClick === true) {
@@ -10651,10 +9534,9 @@ $.noConflict = function() {
                         });
                     }
 
-                    Utils.exec(o.onWeekDayClick, [that.selected, day], element[0]);
-                    element.fire("weekdayclick", {
-                        day: day,
-                        selected: that.selected
+                    that._fireEvent("week-day-click", {
+                        selected: that.selected,
+                        day: day
                     });
 
                     e.preventDefault();
@@ -10683,11 +9565,10 @@ $.noConflict = function() {
                         });
                     }
 
-                    Utils.exec(o.onWeekNumberClick, [that.selected, weekNumber, weekNumElement], element[0]);
-                    element.fire("weeknumberclick", {
-                        el: this,
+                    that._fireEvent("week-number-click", {
+                        selected: that.selected,
                         num: weekNumber,
-                        selected: that.selected
+                        numElement: weekNumElement
                     });
 
                     e.preventDefault();
@@ -10710,6 +9591,11 @@ $.noConflict = function() {
                         day: date.getDate()
                     };
                     that._drawContent();
+
+                    that._fireEvent("month-change", {
+                        current: that.current
+                    });
+
                     return ;
                 }
 
@@ -10739,10 +9625,10 @@ $.noConflict = function() {
 
                 }
 
-                Utils.exec(o.onDayClick, [that.selected, day, element]);
-                element.fire("dayclick", {
+                that._fireEvent("day-click", {
+                    selected: that.selected,
                     day: day,
-                    selected: that.selected
+                    time: that.time
                 });
 
                 e.preventDefault();
@@ -10750,71 +9636,47 @@ $.noConflict = function() {
             });
 
             element.on(Metro.events.click, ".curr-month", function(e){
-                var target;
-                var list = element.find(".months-list");
-
-                list.find(".active").removeClass("active");
-                list.scrollTop(0);
-                element.find(".calendar-months").addClass("open");
-
-                target = list.find(".js-month-"+that.current.month).addClass("active");
-
-                setTimeout(function(){
-                    list.animate({
-                        draw: {
-                            scrollTop: target.position().top - ( (list.height() - target.height() )/ 2)
-                        },
-                        dur: 200
-                    })
-                }, 300);
+                that.content = "months";
+                that._drawContent();
 
                 e.preventDefault();
                 e.stopPropagation();
             });
 
-            element.on(Metro.events.click, ".calendar-months li", function(e){
-                that.current.month = $(this).index();
+            element.on(Metro.events.click, ".month", function(e){
+                that.current.month = parseInt($(this).attr("data-month"));
+                that.content = "days";
                 that._drawContent();
-                Utils.exec(o.onMonthChange, [that.current, element], element[0]);
-                element.fire("monthchange", {
+
+                that._fireEvent("month-change", {
                     current: that.current
                 });
-                element.find(".calendar-months").removeClass("open");
+
                 e.preventDefault();
                 e.stopPropagation();
             });
 
             element.on(Metro.events.click, ".curr-year", function(e){
-                var target;
-                var list = element.find(".years-list");
-
-                list.find(".active").removeClass("active");
-                list.scrollTop(0);
-                element.find(".calendar-years").addClass("open");
-
-                target = list.find(".js-year-"+that.current.year).addClass("active");
-
-                setTimeout(function(){
-                    list.animate({
-                        draw: {
-                            scrollTop: target.position().top - ( (list.height() - target.height() )/ 2)
-                        },
-                        dur: 200
-                    })
-                }, 300);
+                if (that.content === "years") {
+                    return ;
+                }
+                that.content = "years";
+                that._drawContent();
 
                 e.preventDefault();
                 e.stopPropagation();
             });
 
-            element.on(Metro.events.click, ".calendar-years li", function(e){
-                that.current.year = $(this).text();
+            element.on(Metro.events.click, ".year", function(e){
+                that.current.year = parseInt($(this).attr("data-year"));
+                that.yearGroupStart = that.current.year;
+                that.content = "months";
                 that._drawContent();
-                Utils.exec(o.onYearChange, [that.current, element], element[0]);
-                element.fire("yearchange", {
+
+                that._fireEvent("year-change", {
                     current: that.current
                 });
-                element.find(".calendar-years").removeClass("open");
+
                 e.preventDefault();
                 e.stopPropagation();
             });
@@ -10865,36 +9727,81 @@ $.noConflict = function() {
             }
         },
 
-        _drawMonths: function(){
-            var element = this.element, o = this.options;
-            var months = $("<div>").addClass("calendar-months").addClass(o.clsCalendarMonths).appendTo(element);
-            var list = $("<ul>").addClass("months-list").appendTo(months);
-            var calendar_locale = this.locale['calendar'];
-            var i;
-            for(i = 0; i < 12; i++) {
-                $("<li>").addClass("js-month-"+i).html(calendar_locale['months'][i]).appendTo(list);
+        _drawTime: function(){
+            var that = this, element = this.element, o = this.options;
+            var calendarContent = element.find(".calendar-content");
+            var time = $("<div>").addClass("calendar-time").addClass(o.clsCalendarTime).appendTo(calendarContent);
+            var inner, hours, minutes, row;
+            var h = ""+this.time[0];
+            var m = ""+this.time[1];
+            var locale = this.locale['calendar']['time'];
+
+            var onChange = function(val){
+                var value = parseInt(val);
+                if ($(this).attr("data-time-part") === "hours") {
+                    that.time[0] = value;
+                    that._fireEvent("hours-change", {
+                        time: that.time,
+                        hours: value
+                    });
+                } else {
+                    that.time[1] = value;
+                    that._fireEvent("minutes-change", {
+                        time: that.time,
+                        minutes: value
+                    });
+                }
+
+                that._fireEvent("time-change", {
+                    time: that.time
+                });
+            }
+
+            time.append( inner = $("<div>").addClass("calendar-time__inner") );
+
+            inner.append( row = $("<div>").addClass("calendar-time__inner-row") );
+            row.append( $("<div>").addClass("calendar-time__inner-cell").append( $("<span>").html(o.labelTimeHours || locale['hours']) ));
+            row.append( $("<div>").addClass("calendar-time__inner-cell").append( $("<span>").html(o.labelTimeMinutes || locale['minutes']) ));
+
+            time.append( inner = $("<div>").addClass("calendar-time__inner spinners").addClass(o.clsTime) );
+            inner.append( hours = $("<input type='text' data-cls-spinner-input='"+o.clsTimeHours+"' data-time-part='hours' data-buttons-position='right' data-min-value='0' data-max-value='23'>").addClass("hours").addClass(o.compact ? "input-small" : "input-normal") );
+            inner.append( minutes = $("<input type='text' data-cls-spinner-input='"+o.clsTimeMinutes+"' data-time-part='minutes' data-buttons-position='right' data-min-value='0' data-max-value='59'>").addClass("minutes").addClass(o.compact ? "input-small" : "input-normal") );
+
+            h = Utils.lpad(h, "0", 2);
+            m = Utils.lpad(m, "0", 2);
+
+            hours.val(h);
+            minutes.val(m);
+
+            inner.find("input[type=text]").spinner({
+                onChange: onChange,
+                clsSpinnerButton: o.clsTimeButton,
+                clsSpinnerButtonPlus: o.clsTimeButtonPlus,
+                clsSpinnerButtonMinus: o.clsTimeButtonMinus
+            });
+
+            if (o.showTime === false) {
+                time.hide();
             }
         },
 
-        _drawYears: function(){
-            var element = this.element, o = this.options;
-            var years = $("<div>").addClass("calendar-years").addClass(o.clsCalendarYears).appendTo(element);
-            var list = $("<ul>").addClass("years-list").appendTo(years);
-            var i;
-            for(i = this.minYear; i <= this.maxYear; i++) {
-                $("<li>").addClass("js-year-"+i).html(i).appendTo(list);
-            }
-        },
-
-        _drawContent: function(){
+        _drawContentDays: function(){
             var element = this.element, o = this.options;
             var content = element.find(".calendar-content"), toolbar;
             var calendar_locale = this.locale['calendar'];
             var i, j, d, s, counter = 0;
             var first = new Date(this.current.year, this.current.month, 1);
-            var first_day;
+            var first_day, first_time, today = {
+                year: this.today.getFullYear(),
+                month: this.today.getMonth(),
+                day: this.today.getDate(),
+                time: this.today.getTime()
+            };
             var prev_month_days = (new Date(this.current.year, this.current.month, 0)).getDate();
-            var year, month;
+            var year, month, eventsCount, totalDays = 0;
+            var min_time = this.min ? this.min.getTime() : null,
+                max_time = this.max ? this.max.getTime() : null,
+                show_time= this.show ? this.show.getTime() : null;
 
             if (content.length === 0) {
                 content = $("<div>").addClass("calendar-content").addClass(o.clsCalendarContent).appendTo(element);
@@ -10956,9 +9863,14 @@ $.noConflict = function() {
                 $("<div>").addClass("week-number").html((new Date(year, month, prev_month_days - first_day + 1)).getWeek(o.weekStart)).appendTo(days_row);
             }
 
+            // Days for previous month
             for(i = 0; i < first_day; i++) {
                 var v = prev_month_days - first_day + i + 1;
                 d = $("<div>").addClass(day_class+" outside").appendTo(days_row);
+                totalDays++;
+                if (o.animationContent) {
+                    d.addClass("to-animate");
+                }
 
                 s = new Date(year, month, v);
                 s.setHours(0,0,0,0);
@@ -10974,44 +9886,59 @@ $.noConflict = function() {
                         }
                     }
 
-                    Utils.exec(o.onDayDraw, [s], d[0]);
-                    element.fire("daydraw", {
-                        cell: d[0],
-                        date: s
+                    this._fireEvent("draw-day", {
+                        date: s,
+                        day: s.getDate(),
+                        month: s.getMonth(),
+                        year: s.getFullYear(),
+                        cell: d[0]
                     });
                 }
 
                 counter++;
             }
 
+            // Days for current month
             first.setHours(0,0,0,0);
+
             while(first.getMonth() === this.current.month) {
+                first_time = first.getTime();
 
                 d = $("<div>").addClass(day_class).html(first.getDate()).appendTo(days_row);
 
-                d.data('day', first.getTime());
+                totalDays++;
 
-                if (this.show.getTime() === first.getTime()) {
+                if (o.animationContent) {
+                    d.addClass("to-animate");
+                }
+
+                if (first.getDate() === today.day && first_time !== today.time && o.showCoincidentalDay) {
+                    d.addClass("coincidental");
+                }
+
+                d.data('day', first_time);
+
+                if (show_time && show_time === first_time) {
                     d.addClass("showed");
                 }
 
-                if (this.today.getTime() === first.getTime()) {
+                if (today.time === first_time) {
                     d.addClass("today").addClass(o.clsToday);
                 }
 
                 if (this.special.length === 0) {
 
-                    if (this.selected.indexOf(first.getTime()) !== -1) {
+                    if (this.selected.length && this.selected.indexOf(first_time) !== -1) {
                         d.addClass("selected").addClass(o.clsSelected);
                     }
-                    if (this.exclude.indexOf(first.getTime()) !== -1) {
+                    if (this.exclude.length && this.exclude.indexOf(first_time) !== -1) {
                         d.addClass("disabled excluded").addClass(o.clsExcluded);
                     }
 
-                    if (this.min !== null && first.getTime() < this.min.getTime()) {
+                    if (min_time && first_time < min_time) {
                         d.addClass("disabled excluded").addClass(o.clsExcluded);
                     }
-                    if (this.max !== null && first.getTime() > this.max.getTime()) {
+                    if (max_time && first_time > max_time) {
                         d.addClass("disabled excluded").addClass(o.clsExcluded);
                     }
 
@@ -11022,16 +9949,31 @@ $.noConflict = function() {
                     }
                 } else {
 
-                    if (this.special.indexOf(first.getTime()) === -1) {
+                    if (this.special.length && this.special.indexOf(first_time) === -1) {
                         d.addClass("disabled excluded").addClass(o.clsExcluded);
                     }
 
                 }
 
-                Utils.exec(o.onDayDraw, [first], d[0]);
-                element.fire("daydraw", {
-                    cell: d[0],
-                    date: first
+                if (this.events.length) {
+                    eventsCount = 0;
+                    $.each(this.events, function(){
+                        if (this === first_time) {
+                            eventsCount++;
+                        }
+                    });
+
+                    if (eventsCount) {
+                        d.append( $("<div>").addClass("badge inside").addClass(o.clsEventCounter).html(eventsCount) );
+                    }
+                }
+
+                this._fireEvent("draw-day", {
+                    date: first,
+                    day: first.getDate(),
+                    month: first.getMonth(),
+                    year: first.getFullYear(),
+                    cell: d[0]
                 });
 
                 counter++;
@@ -11045,7 +9987,8 @@ $.noConflict = function() {
                 first.setHours(0,0,0,0);
             }
 
-            first_day = o.weekStart === 0 ? first.getDay() : (first.getDay() === 0 ? 6 : first.getDay() - 1);
+            // Days for next month
+            //first_day = o.weekStart === 0 ? first.getDay() : (first.getDay() === 0 ? 6 : first.getDay() - 1);
 
             if (this.current.month + 1 > 11) {
                 month = 0;
@@ -11055,8 +9998,14 @@ $.noConflict = function() {
                 year = this.current.year;
             }
 
-            if (first_day > 0) for(i = 0; i < 7 - first_day; i++) {
+//            if (first_day > 0) for(i = 0; i < 7 - first_day; i++) {
+            for(i = 0; i < 42 - totalDays; i++) {
                 d = $("<div>").addClass(day_class+" outside").appendTo(days_row);
+
+                if (o.animationContent) {
+                    d.addClass("to-animate");
+                }
+
                 s = new Date(year, month, i + 1);
                 s.setHours(0,0,0,0);
                 d.data('day', s.getTime());
@@ -11069,13 +10018,131 @@ $.noConflict = function() {
                         }
                     }
 
-                    Utils.exec(o.onDayDraw, [s], d[0]);
-                    element.fire("daydraw", {
-                        cell: d[0],
-                        date: s
+                    this._fireEvent("draw-day", {
+                        date: s,
+                        day: s.getDate(),
+                        month: s.getMonth(),
+                        year: s.getFullYear(),
+                        cell: d[0]
                     });
 
                 }
+
+                counter++;
+                if (counter % 7 === 0) {
+                    days_row = $("<div>").addClass("days-row").appendTo(days);
+                    if (o.showWeekNumber === true) {
+                        $("<div>").addClass("week-number").html((new Date(first.getFullYear(), first.getMonth(), first.getDate() + 1)).getWeek(o.weekStart)).appendTo(days_row);
+                    }
+                }
+
+            }
+
+            this._drawTime();
+            this._animateContent(".days .day");
+        },
+
+        _drawContentMonths: function(){
+            var element = this.element, o = this.options;
+            var content = element.find(".calendar-content");
+            var locale = this.locale['calendar']['months'];
+            var toolbar, months, month, yearToday = new Date().getFullYear(), monthToday = new Date().getMonth();
+
+            if (content.length === 0) {
+                content = $("<div>").addClass("calendar-content").addClass(o.clsCalendarContent).appendTo(element);
+            }
+
+            content.clear();
+
+            toolbar = $("<div>").addClass("calendar-toolbar").appendTo(content);
+
+            /**
+             * Calendar toolbar
+             */
+
+            $("<span>").addClass("prev-year").html(o.prevYearIcon).appendTo(toolbar);
+            $("<span>").addClass("curr-year").html(this.current.year).appendTo(toolbar);
+            $("<span>").addClass("next-year").html(o.nextYearIcon).appendTo(toolbar);
+
+            content.append( months = $("<div>").addClass("months") );
+
+            for(var i = 12; i < 24; i++) {
+                months.append(
+                    month = $("<div>")
+                        .attr("data-month", i - 12)
+                        .addClass("month")
+                        .addClass(i - 12 === monthToday && this.current.year === yearToday ? "today" : "")
+                        .html(locale[i])
+                );
+
+                if (o.animationContent) {
+                    month.addClass("to-animate");
+                }
+
+                this._fireEvent("draw-month", {
+                    month: i - 12,
+                    year: this.current.year,
+                    cell: month[0]
+                });
+            }
+
+            this._animateContent(".months .month");
+        },
+
+        _drawContentYears: function(){
+            var element = this.element, o = this.options;
+            var content = element.find(".calendar-content");
+            var toolbar, years, year;
+
+            if (content.length === 0) {
+                content = $("<div>").addClass("calendar-content").addClass(o.clsCalendarContent).appendTo(element);
+            }
+
+            content.clear();
+
+            toolbar = $("<div>").addClass("calendar-toolbar").appendTo(content);
+
+            /**
+             * Calendar toolbar
+             */
+
+            $("<span>").addClass("prev-year-group").html(o.prevYearIcon).appendTo(toolbar);
+            $("<span>").addClass("curr-year").html(this.yearGroupStart + " - " + (this.yearGroupStart + this.yearDistance)).appendTo(toolbar);
+            $("<span>").addClass("next-year-group").html(o.nextYearIcon).appendTo(toolbar);
+
+            content.append( years = $("<div>").addClass("years") );
+
+            for(var i = this.yearGroupStart; i <= this.yearGroupStart + this.yearDistance; i++) {
+                years.append(
+                    year = $("<div>")
+                        .attr("data-year", i)
+                        .addClass("year")
+                        .addClass(i === this.current.year ? "today" : "")
+                        .html(i)
+                );
+
+                if (o.animationContent) {
+                    year.addClass("to-animate");
+                }
+
+                if (i < o.minYear || i > o.maxYear) {
+                    year.addClass("disabled");
+                }
+
+                this._fireEvent("draw-year", {
+                    year: i,
+                    cell: year[0]
+                });
+            }
+
+            this._animateContent(".years .year");
+        },
+
+        _drawContent: function(){
+            switch (this.content) {
+                case "years": this._drawContentYears(); break;
+                case "months": this._drawContentMonths(); break;
+                default: this._drawContentDays();
             }
         },
 
@@ -11086,9 +10153,41 @@ $.noConflict = function() {
                 that._drawHeader();
                 that._drawContent();
                 that._drawFooter();
-                that._drawMonths();
-                that._drawYears();
             }, 0);
+        },
+
+        _animateContent: function(target, cls){
+            var element = this.element, o = this.options;
+            var content = element.find(".calendar-content");
+
+            cls = cls || "to-animate";
+
+            content.find(target).each(function(k){
+                var day = $(this);
+                setTimeout(function(){
+                    day.removeClass(cls);
+                }, o.animationSpeed * k);
+            });
+        },
+
+        getTime: function(asString){
+            var h, m;
+
+            asString = asString || false;
+
+            h = (""+this.time[0]).length < 2 ? "0"+this.time[0] : this.time[0];
+            m = (""+this.time[1]).length < 2 ? "0"+this.time[1] : this.time[1];
+
+            return asString ? h +":"+ m : this.time;
+        },
+
+        setTime: function(time){
+            if (Array.isArray(time)) {
+                this.time = time;
+            } else {
+                this.time = time.split(":");
+            }
+            this._drawCalendar();
         },
 
         getPreset: function(){
@@ -11124,6 +10223,9 @@ $.noConflict = function() {
                 month: this.today.getMonth(),
                 day: this.today.getDate()
             };
+            this.time = [new Date().getHours(), new Date().getMinutes()];
+            this.yearGroupStart = new Date().getFullYear();
+            this.content = "days";
             this._drawHeader();
             this._drawContent();
         },
@@ -11282,6 +10384,19 @@ $.noConflict = function() {
     'use strict';
     var Utils = Metro.utils;
     var CalendarPickerDefaultConfig = {
+        showTime: false,
+        initialTime: null,
+        initialHours: null,
+        initialMinutes: null,
+        clsCalendarTime: "",
+        clsTime: "",
+        clsTimeHours: "",
+        clsTimeMinutes: "",
+        clsTimeButton: "",
+        clsTimeButtonPlus: "",
+        clsTimeButtonMinus: "",
+
+        label: "",
         value:'',
         calendarpickerDeferred: 0,
         nullValue: true,
@@ -11334,12 +10449,14 @@ $.noConflict = function() {
         clsSelected: "",
         clsExcluded: "",
         clsPrepend: "",
+        clsLabel: "",
 
         onDayClick: Metro.noop,
         onCalendarPickerCreate: Metro.noop,
         onCalendarShow: Metro.noop,
         onCalendarHide: Metro.noop,
         onChange: Metro.noop,
+        onPickerChange: Metro.noop,
         onMonthChange: Metro.noop,
         onYearChange: Metro.noop
     };
@@ -11359,7 +10476,8 @@ $.noConflict = function() {
                 value_date: null,
                 calendar: null,
                 overlay: null,
-                id: Utils.elementId("calendar-picker")
+                id: Utils.elementId("calendar-picker"),
+                time: [new Date().getHours(), new Date().getMinutes()]
             });
 
             return this;
@@ -11380,31 +10498,86 @@ $.noConflict = function() {
             var container = $("<div>").addClass("input " + element[0].className + " calendar-picker");
             var buttons = $("<div>").addClass("button-group");
             var calendarButton, clearButton, cal = $("<div>").addClass("drop-shadow");
-            var curr;
+            var curr, _curr, initTime, initHours, initMinutes, elementValue, h, m;
             var body = $("body");
 
             element.attr("type", "text");
             element.attr("autocomplete", "off");
             element.attr("readonly", true);
 
+            if (Utils.isValue(o.initialTime)) {
+                this.time = o.initialTime.trim().split(":");
+            }
+
+            if (Utils.isValue(o.initialHours)) {
+                this.time[0] = parseInt(o.initialHours);
+            }
+
+            if (Utils.isValue(o.initialHours)) {
+                this.time[1] = parseInt(o.initialMinutes);
+            }
+
             curr = (""+o.value).trim() !== '' ? o.value : element.val().trim();
 
             if (!Utils.isValue(curr)) {
-                if (o.useNow) this.value = new Date();
+                if (o.useNow) {
+                    this.value = new Date();
+                    this.time = [this.value.getHours(), this.value.getMinutes()];
+                }
             } else {
-                this.value = !Utils.isValue(o.inputFormat) ? new Date(curr) : curr.toDate(o.inputFormat, o.locale);
+                _curr = curr.split(" ");
+                this.value = !Utils.isValue(o.inputFormat) ? new Date(_curr[0]) : _curr[0].toDate(o.inputFormat, o.locale);
+                if (_curr[1]) {
+                    this.time = _curr[1].trim().split(":");
+                }
             }
 
             if (Utils.isValue(this.value)) this.value.setHours(0,0,0,0);
 
-            element.val(!Utils.isValue(curr) && o.nullValue === true ? "" : that.value.format(o.format, o.locale));
+            elementValue = !Utils.isValue(curr) && o.nullValue === true ? "" : that.value.format(o.format, o.locale);
+
+            if (o.showTime && this.time && elementValue) {
+                h = Utils.lpad(this.time[0], "0", 2);
+                m = Utils.lpad(this.time[1], "0", 2);
+                elementValue += " " + h + ":" + m;
+            }
+
+            element.val(elementValue);
 
             container.insertBefore(element);
             element.appendTo(container);
             buttons.appendTo(container);
             cal.appendTo(o.dialogMode ? body : container);
 
+            if (this.time && this.time.length) {
+                initHours = this.time[0];
+                if (typeof this.time[1] !== "undefined")
+                    initMinutes = this.time[1];
+            }
+
+            initTime = o.initialTime;
+
+            if (o.initialHours) {
+                initHours = o.initialHours;
+            }
+
+            if (o.initialHours) {
+                initMinutes = o.initialMinutes;
+            }
+
             Metro.makePlugin(cal, "calendar", {
+                showTime: o.showTime,
+                initialTime: initTime,
+                initialHours: initHours,
+                initialMinutes: initMinutes,
+                clsCalendarTime: o.clsCalendarTime,
+                clsTime: o.clsTime,
+                clsTimeHours: o.clsTimeHours,
+                clsTimeMinutes: o.clsTimeMinutes,
+                clsTimeButton: o.clsTimeButton,
+                clsTimeButtonPlus: o.clsTimeButtonPlus,
+                clsTimeButtonMinus: o.clsTimeButtonMinus,
+
                 wide: o.calendarWide,
                 widePoint: o.calendarWidePoint,
 
@@ -11439,29 +10612,74 @@ $.noConflict = function() {
                 showHeader: o.showHeader,
                 showFooter: false,
                 showWeekNumber: o.showWeekNumber,
-                onDayClick: function(sel, day, el){
+                onDayClick: function(sel, day, time, el){
                     var date = new Date(sel[0]);
+                    var elementValue, h, m;
+
                     date.setHours(0,0,0,0);
 
                     that._removeOverlay();
 
                     that.value = date;
-                    element.val(date.format(o.format, o.locale));
+                    that.time = time;
+
+                    elementValue = date.format(o.format, o.locale);
+
+                    if (o.showTime) {
+                        h = Utils.lpad(time[0], "0", 2);
+                        m = Utils.lpad(time[1], "0", 2);
+                        elementValue += " " + h + ":" + m;
+                    }
+
+                    element.val(elementValue);
                     element.trigger("change");
                     cal.removeClass("open open-up");
                     cal.hide();
 
-                    Utils.exec(o.onChange, [that.value], element[0]);
-                    element.fire("change", {
-                        val: that.value
+                    that._fireEvent("change", {
+                        val: that.value,
+                        time: that.time
                     });
 
-                    Utils.exec(o.onDayClick, [sel, day, el], element[0]);
-                    element.fire("dayclick", {
+                    that._fireEvent("day-click", {
                         sel: sel,
                         day: day,
+                        time: time,
                         el: el
-                    })
+                    });
+
+                    that._fireEvent("picker-change", {
+                        val: that.value,
+                        time: that.time
+                    });
+                },
+                onTimeChange: function(time){
+                    var elementValue, h, m;
+
+                    that.time = time;
+
+                    if (!that.value) {
+                        that.value = new Date();
+                    }
+                    elementValue = that.value.format(o.format, o.locale);
+
+                    if (o.showTime) {
+                        h = Utils.lpad(time[0], "0", 2);
+                        m = Utils.lpad(time[1], "0", 2);
+                        elementValue += " " + h + ":" + m;
+                    }
+
+                    element.val(elementValue);
+
+                    that._fireEvent("change", {
+                        val: that.value,
+                        time: that.time
+                    });
+
+                    that._fireEvent("picker-change", {
+                        val: that.value,
+                        time: that.time
+                    });
                 },
                 onMonthChange: o.onMonthChange,
                 onYearChange: o.onYearChange
@@ -11520,6 +10738,16 @@ $.noConflict = function() {
                 }
             }
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(container);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (element.is(":disabled")) {
                 this.disable();
             } else {
@@ -11573,11 +10801,14 @@ $.noConflict = function() {
                         that.overlay.appendTo($('body'));
                     }
                     cal.addClass("open");
-                    if (Utils.isOutsider(cal) === false) {
+                    if (!Utils.inViewport(cal[0])) {
                         cal.addClass("open-up");
                     }
-                    Utils.exec(o.onCalendarShow, [element, cal], cal);
-                    element.fire("calendarshow", {
+                    // if (Utils.isOutsider(cal) === false) {
+                    //     cal.addClass("open-up");
+                    // }
+
+                    that._fireEvent("calendar-show", {
                         calendar: cal
                     });
 
@@ -11585,8 +10816,8 @@ $.noConflict = function() {
 
                     that._removeOverlay();
                     cal.removeClass("open open-up");
-                    Utils.exec(o.onCalendarHide, [element, cal], cal);
-                    element.fire("calendarhide", {
+
+                    that._fireEvent("calendar-hide", {
                         calendar: cal
                     });
 
@@ -11617,7 +10848,7 @@ $.noConflict = function() {
                 overlay.addClass("transparent");
             } else {
                 overlay.css({
-                    background: Utils.hex2rgba(o.overlayColor, o.overlayAlpha)
+                    background: Metro.colors.toRGBA(o.overlayColor, o.overlayAlpha)
                 });
             }
 
@@ -11630,18 +10861,38 @@ $.noConflict = function() {
 
         val: function(v){
             var element = this.element, o = this.options;
+            var elementValue, h, m;
 
-            if (Utils.isNull(v)) {
-                return this.value;
+            if (Utils.isNull(v) || arguments.length === 0)  {
+                return {
+                    date: this.value,
+                    time: this.time
+                };
             }
 
-            if (Utils.isDate(v, o.inputFormat) === true) {
-                Metro.getPlugin(this.calendar[0],"calendar").clearSelected();
-                this.value = typeof v === 'string' ? o.inputFormat ? v.toDate(o.inputFormat, o.locale) : new Date(v) : v;
-                if (Utils.isValue(this.value)) this.value.setHours(0,0,0,0);
-                element.val(this.value.format(o.format, o.locale));
-                element.trigger("change");
+            if (!Utils.isDate(v, o.format) && !Utils.isDateObject(v)) {
+                throw new Error(v + " is a not valid date value");
             }
+
+            var _curr = v.split(" ");
+            this.value = Utils.isValue(o.inputFormat) === false ? new Date(_curr[0]) : _curr[0].toDate(o.inputFormat, o.locale);
+            if (_curr[1]) {
+                this.time = _curr[1].trim().split(":");
+            }
+
+            this.value.setHours(0,0,0,0);
+            this.calendar.data('calendar').setTime(this.time);
+
+            elementValue = this.value.format(o.format);
+
+            if (o.showTime && this.time && elementValue) {
+                h = Utils.lpad(this.time[0], "0", 2);
+                m = Utils.lpad(this.time[1], "0", 2);
+                elementValue += " " + h + ":" + m;
+            }
+
+            element.val(elementValue);
+            element.trigger("change");
         },
 
         disable: function(){
@@ -11689,47 +10940,30 @@ $.noConflict = function() {
             }
         },
 
-        changeAttribute: function(attributeName){
-            var that = this, element = this.element;
+        getTime: function(asString){
+            var h, m;
+
+            asString = asString || false;
+
+            h = Utils.lpad(this.time[0], "0", 2);
+            m = Utils.lpad(this.time[1], "0", 2);
+
+            return asString ? h +":"+ m : this.time;
+        },
+
+        changeAttribute: function(attributeName, newValue){
+            var that = this;
             var cal = Metro.getPlugin(this.calendar[0], "calendar");
 
-            var changeAttrLocale = function(){
-                that.i18n(element.attr("data-locale"));
-            };
-
-            var changeAttrSpecial = function(){
-                cal.setSpecial(element.attr("data-special"));
-            };
-
-            var changeAttrExclude = function(){
-                cal.setExclude(element.attr("data-exclude"));
-            };
-
-            var changeAttrMinDate = function(){
-                cal.setMinDate(element.attr("data-min-date"));
-            };
-
-            var changeAttrMaxDate = function(){
-                cal.setMaxDate(element.attr("data-max-date"));
-            };
-
-            var changeAttrValue = function(){
-                that.val(element.attr("value"));
-            };
-
-            var changeDataValue = function(){
-                that.val(element.attr("data-value"))
-            };
-
             switch (attributeName) {
-                case "value": changeAttrValue(); break;
+                case "value": that.val(newValue); break;
                 case 'disabled': this.toggleState(); break;
-                case 'data-locale': changeAttrLocale(); break;
-                case 'data-special': changeAttrSpecial(); break;
-                case 'data-exclude': changeAttrExclude(); break;
-                case 'data-min-date': changeAttrMinDate(); break;
-                case 'data-max-date': changeAttrMaxDate(); break;
-                case 'data-value': changeDataValue(); break;
+                case 'data-locale': that.i18n(newValue); break;
+                case 'data-special': cal.setSpecial(newValue); break;
+                case 'data-exclude': cal.setExclude(newValue); break;
+                case 'data-min-date': cal.setMinDate(newValue); break;
+                case 'data-max-date': cal.setMaxDate(newValue); break;
+                case 'data-value': that.val(newValue); break;
             }
         },
 
@@ -11849,6 +11083,12 @@ $.noConflict = function() {
             this.dir = this.options.direction;
 
             element.addClass("carousel").addClass(o.clsCarousel);
+
+            element.css({
+                maxWidth: o.width
+            });
+
+
             if (o.controlsOutside === true) {
                 element.addClass("controls-outside");
             }
@@ -11975,6 +11215,8 @@ $.noConflict = function() {
                             slide.css("opacity", "0");
                             break;
                     }
+                } else {
+                    slide.addClass("active-slide");
                 }
 
                 slide.addClass(o.clsSlide);
@@ -12247,14 +11489,12 @@ $.noConflict = function() {
 
         stop: function () {
             clearInterval(this.interval);
-            Utils.exec(this.options.onStop, [this.element]);
-            this.element.fire("stop");
+            this._fireEvent("stop");
         },
 
         play: function(){
             this._start();
-            Utils.exec(this.options.onPlay, [this.element]);
-            this.element.fire("play");
+            this._fireEvent("play");
         },
 
         setEffect: function(effect){
@@ -12358,7 +11598,7 @@ $.noConflict = function() {
             this.origin.background = element.css("background-color");
 
             element.css({
-                backgroundColor: Utils.computedRgbToRgba(Utils.getStyleOne(element, "background-color"), o.opacity)
+                backgroundColor: Metro.colors.toRGBA(Utils.getStyleOne(element, "background-color"), o.opacity)
             });
         },
 
@@ -12366,25 +11606,23 @@ $.noConflict = function() {
         },
 
         open: function(){
-            var element = this.element, o = this.options;
+            var element = this.element;
 
             element.addClass("open");
 
-            Utils.exec(o.onOpen, null, element[0]);
-            element.fire("open");
+            this._fireEvent("open");
         },
 
         close: function(){
-            var element = this.element, o = this.options;
+            var element = this.element;
 
             element.removeClass("open");
 
-            Utils.exec(o.onClose, null, element[0]);
-            element.fire("close");
+            this._fireEvent("close");
         },
 
         toggle: function(){
-            var element = this.element, o = this.options;
+            var element = this.element;
 
             if (element.hasClass("open") === true) {
                 this.close();
@@ -12392,8 +11630,7 @@ $.noConflict = function() {
                 this.open();
             }
 
-            Utils.exec(o.onToggle, null, element[0]);
-            element.fire("toggle");
+            this._fireEvent("toggle");
         },
 
         opacity: function(v){
@@ -12408,8 +11645,9 @@ $.noConflict = function() {
                 return ;
             }
             o.opacity = opacity;
+
             element.css({
-                backgroundColor: Utils.computedRgbToRgba(Utils.getStyleOne(element, "background-color"), opacity)
+                backgroundColor: Metro.colors.toRGBA(Utils.getStyleOne(element, "background-color"), opacity)
             });
         },
 
@@ -12598,7 +11836,7 @@ $.noConflict = function() {
                 var msg = ""+input.val(), m;
                 if (msg.trim() === "") {return false;}
                 m = {
-                    id: Utils.elementId(""),
+                    id: Utils.elementId("chat-message"),
                     name: o.name,
                     avatar: o.avatar,
                     text: msg,
@@ -12606,11 +11844,10 @@ $.noConflict = function() {
                     time: (new Date())
                 };
                 that.add(m);
-                Utils.exec(o.onSend, [m], element[0]);
-                element.fire("send", {
+                input.val("");
+                that._fireEvent("send", {
                     msg: m
                 });
-                input.val("");
             };
 
             sendButton.on(Metro.events.click, function () {
@@ -12655,16 +11892,7 @@ $.noConflict = function() {
                 }
             }
 
-            Utils.exec(o.onMessage, [msg, {
-                message: message,
-                sender: sender,
-                time: time,
-                item: item,
-                avatar: avatar,
-                text: text
-            }], message[0]);
-
-            element.fire("message", {
+            that._fireEvent("message", {
                 msg: msg,
                 el: {
                     message: message,
@@ -12674,13 +11902,6 @@ $.noConflict = function() {
                     avatar: avatar,
                     text: text
                 }
-            });
-
-            setImmediate(function(){
-                element.fire("onmessage", {
-                    message: msg,
-                    element: message[0]
-                });
             });
 
             messages.animate({
@@ -12801,9 +12022,7 @@ $.noConflict = function() {
         _create: function(){
             this._createStructure();
             this._createEvents();
-            this._fireEvent("checkbox-create", {
-                element: this.element
-            })
+            this._fireEvent("checkbox-create");
         },
 
         _createStructure: function(){
@@ -12814,10 +12033,6 @@ $.noConflict = function() {
 
             element.attr("type", "checkbox");
 
-            if (!Utils.isValue(element.attr("id"))) {
-                element.attr("id", Utils.elementId("checkbox"));
-            }
-
             if (element.attr("readonly") !== undefined) {
                 element.on("click", function(e){
                     e.preventDefault();
@@ -12827,8 +12042,7 @@ $.noConflict = function() {
             checkbox = element
                 .wrap("<label>")
                 .addClass("checkbox " + element[0].className)
-                .addClass(o.style === 2 ? "style2" : "")
-                .attr('for', element.attr('id'));
+                .addClass(o.style === 2 ? "style2" : "");
 
             check.appendTo(checkbox);
             caption.appendTo(checkbox);
@@ -12872,10 +12086,12 @@ $.noConflict = function() {
         },
 
         indeterminate: function(v){
-            if (Utils.isNull(v)) {
-                v = true;
-            }
-            this.element[0].indeterminate = v;
+            var element = this.element;
+
+            v = Utils.isNull(v) ? true : Utils.bool(v);
+
+            element[0].indeterminate = v;
+            element.attr("data-indeterminate", v);
         },
 
         disable: function(){
@@ -12894,6 +12110,23 @@ $.noConflict = function() {
             } else {
                 this.enable();
             }
+        },
+
+        toggle: function(v){
+            var element = this.element;
+
+            this.indeterminate(false);
+
+            if (!Utils.isValue(v)) {
+                element.prop("checked", !Utils.bool(element.prop("checked")));
+            } else {
+                if (v === -1) {
+                    this.indeterminate(true);
+                } else {
+                    element.prop("checked", v === 1);
+                }
+            }
+            return this;
         },
 
         changeAttribute: function(attributeName){
@@ -13068,7 +12301,6 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
-    var Utils = Metro.utils;
     var CollapseDefaultConfig = {
         collapseDeferred: 0,
         collapsed: false,
@@ -13139,8 +12371,8 @@ $.noConflict = function() {
                 el.trigger("onCollapse", null, el);
                 el.data("collapsed", true);
                 el.addClass("collapsed");
-                Utils.exec(options.onCollapse, null, elem[0]);
-                elem.fire("collapse");
+
+                dropdown._fireEvent("collapse");
             });
         },
 
@@ -13157,8 +12389,8 @@ $.noConflict = function() {
                 el.trigger("onExpand", null, el);
                 el.data("collapsed", false);
                 el.removeClass("collapsed");
-                Utils.exec(options.onExpand, null, elem[0]);
-                elem.fire("expand");
+
+                dropdown._fireEvent("expand");
             });
         },
 
@@ -13203,6 +12435,2577 @@ $.noConflict = function() {
             return this.element;
         }
     });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+
+    var Utils = Metro.utils;
+    var ColorPickerDefaultConfig = {
+        duration: 100,
+        prepend: "",
+        append: "",
+        clearButton: false,
+        clearButtonIcon: "<span class='default-icon-cross'></span>",
+        pickerButtonIcon: "<span class='default-icon-equalizer'></span>",
+        defaultValue: "rgba(0, 0, 0, 0)",
+        copyInlineStyles: false,
+        clsPickerButton: "",
+        clsClearButton: "",
+        onColorSelected: Metro.noop,
+        onColorPickerCreate: Metro.noop
+    };
+
+    Metro.colorPickerSetup = function (options) {
+        ColorPickerDefaultConfig = $.extend({}, ColorPickerDefaultConfig, options);
+    };
+
+    if (typeof window["metroColorPickerSetup"] !== undefined) {
+        Metro.colorPickerSetup(window["metroColorPickerSetup"]);
+    }
+
+    Metro.Component('color-picker', {
+        init: function( options, elem ) {
+            this._super(elem, options, $.extend({}, Metro.defaults.ColorSelectorDefaultConfig, {
+                showUserColors: false,
+                showValues: ""
+            }, ColorPickerDefaultConfig), {
+                value: null,
+                picker: null,
+                colorSelector: null,
+                colorSelectorBox: null,
+                colorExample: null,
+                inputInterval: null,
+                isOpen: false
+            });
+            return this;
+        },
+
+        _create: function(){
+            var element = this.element, o = this.options;
+            var current = element.val();
+
+            if (!Metro.pluginExists("color-selector")) {
+                throw new Error("Color selector component required!");
+            }
+
+            this.value = Metro.colors.isColor(current) ? current : Metro.colors.isColor(o.defaultValue) ? o.defaultValue : "rgba(0,0,0,0)";
+
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('color-picker-create');
+        },
+
+        _createStructure: function(){
+            var that = this, element = this.element, o = this.options;
+            var picker = element.wrap( $("<div>").addClass("color-picker").addClass(element[0].className) );
+            var buttons, colorExample, colorSelector, colorSelectorBox;
+
+            colorExample = $("<div>").addClass("color-example-box").insertBefore(element);
+
+            buttons = $("<div>").addClass("buttons").appendTo(picker);
+
+            buttons.append(
+                $("<button>")
+                    .addClass("button color-picker-button")
+                    .addClass(o.clsPickerButton)
+                    .attr("tabindex", -1)
+                    .attr("type", "button")
+                    .html(o.pickerButtonIcon)
+            );
+
+            if (o.clearButton === true && !element[0].readOnly) {
+                buttons.append(
+                    $("<button>")
+                        .addClass("button input-clear-button")
+                        .addClass(o.clsClearButton)
+                        .attr("tabindex", -1)
+                        .attr("type", "button")
+                        .html(o.clearButtonIcon)
+                );
+            }
+
+            if (Utils.isValue(o.prepend)) {
+                picker.prepend($("<div>").addClass("prepend").addClass(o.clsPrepend).html(o.prepend));
+            }
+
+            if (Utils.isValue(o.append)) {
+                picker.append($("<div>").html(o.append).addClass("append").addClass(o.clsAppend));
+            }
+
+            colorSelectorBox = $("<div>").addClass("color-selector-box").appendTo(picker);
+            colorSelector = $("<div>").appendTo(colorSelectorBox);
+
+            this.picker = picker;
+            this.colorExample = colorExample;
+            this.colorSelector = colorSelector;
+            this.colorSelectorBox = colorSelectorBox;
+
+            Metro.makePlugin(colorSelector, 'color-selector', {
+                defaultSwatches: o.defaultSwatches,
+                userColors: o.userColors,
+                returnValueType: o.returnValueType,
+                returnAsString: o.returnAsString,
+                showValues: o.showValues,
+                showAsString: o.showAsString,
+                showUserColors: o.showUserColors,
+                target: o.target,
+                controller: element,
+                locale: o.locale,
+                addUserColorTitle: o.addUserColorTitle,
+                userColorsTitle: o.userColorsTitle,
+                hslMode: o.hslMode,
+                showAlphaChannel: o.showAlphaChannel,
+                inputThreshold: o.inputThreshold,
+                initColor: this.value,
+                readonlyInput: o.readonlyInput,
+                clsSelector: o.clsSelector,
+                clsSwatches: o.clsSwatches,
+                clsSwatch: o.clsSwatch,
+                clsValue: o.clsValue,
+                clsLabel: o.clsLabel,
+                clsInput: o.clsInput,
+                clsUserColorButton: o.clsUserColorButton,
+                clsUserColors: o.clsUserColors,
+                clsUserColorsTitle: o.clsUserColorsTitle,
+                clsUserColor: o.clsUserColor,
+                onColor: o.onColor,
+                onColorSelectorCreate: o.onColorSelectorCreate
+            });
+
+            Metro.makePlugin(colorSelectorBox, 'dropdown', {
+                dropFilter: ".color-picker",
+                duration: o.duration,
+                toggleElement: [picker],
+                checkDropUp: true,
+                onDrop: function(){
+                    Metro.getPlugin(colorSelector, 'color-selector').val(that.value);
+                }
+            });
+
+            element[0].className = '';
+
+            if (o.copyInlineStyles === true) {
+                $.each(Utils.getInlineStyles(element), function(key, value){
+                    picker.css(key, value);
+                });
+            }
+
+            this._setColor();
+        },
+
+        _clearInputInterval: function(){
+            clearInterval(this.inputInterval);
+            this.inputInterval = false;
+        },
+
+        _setColor: function(){
+            var colorExample = this.colorExample;
+            var color = this.value;
+
+            if (this.value.indexOf("cmyk") !== -1 || this.value.indexOf("hsv") !== -1) {
+                color = Metro.colors.toHEX(this.value);
+            }
+
+            colorExample.css({
+                backgroundColor: color
+            });
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element, o = this.options;
+            var picker = this.picker,
+                colorSelector = this.colorSelector,
+                colorSelectorBox = this.colorSelector;
+
+            picker.on(Metro.events.click, ".input-clear-button", function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                element.val(o.defaultValue).trigger("change");
+                Metro.getPlugin(colorSelector, 'color-selector').val(o.defaultValue);
+            });
+
+            element.on(Metro.events.inputchange, function(){
+                that.value = this.value;
+                that._setColor();
+            });
+
+            colorSelectorBox.on(Metro.events.click, function(e){
+                e.stopPropagation();
+            })
+        },
+
+        val: function(v){
+            if (arguments.length === 0 || !Utils.isValue(v)) {
+                return this.value;
+            }
+
+            if (!Metro.colors.isColor(v)) {
+                return ;
+            }
+
+            this.value = v;
+            this.element.val(v).trigger("change");
+            this._setColor();
+        },
+
+        // changeAttribute: function(attr, newValue){
+        // },
+
+        destroy: function(){
+            this.element.remove();
+        }
+    });
+
+    $(document).on(Metro.events.click, function(){
+        $(".color-picker").removeClass("open");
+    });
+
+}(Metro, m4q));
+
+
+(function(Metro, $) {
+    'use strict';
+
+    var supportedColorTypes = "hex, rgb, rgba, hsl, hsla, hsv, cmyk";
+    var Utils = Metro.utils;
+    var ColorSelectorDefaultConfig = {
+        defaultSwatches: "#FFFFFF,#000000,#FFFB0D,#0532FF,#FF9300,#00F91A,#FF2700,#686868,#EE5464,#D27AEE,#5BA8C4,#E64AA9,#1ba1e2,#6a00ff,#bebebe,#f8f8f8",
+        userColors: null,
+        returnValueType: "hex",
+        returnAsString: true,
+        showValues: supportedColorTypes,
+        showAsString: null,
+        showUserColors: true,
+        controller: null,
+        locale: "en-US",
+        addUserColorTitle: null,
+        userColorsTitle: null,
+        hslMode: "percent",
+        showAlphaChannel: true,
+        inputThreshold: 300,
+        initColor: null,
+        readonlyInput: false,
+        clsSelector: "",
+        clsSwatches: "",
+        clsSwatch: "",
+        clsValue: "",
+        clsLabel: "",
+        clsInput: "",
+        clsUserColorButton: "",
+        clsUserColors: "",
+        clsUserColorsTitle: "",
+        clsUserColor: "",
+        onSelectColor: Metro.noop,
+        onColorSelectorCreate: Metro.noop
+    };
+
+    Metro.colorSelectorSetup = function (options) {
+        ColorSelectorDefaultConfig = $.extend({}, ColorSelectorDefaultConfig, options);
+    };
+
+    if (typeof window["metroColorSelectorSetup"] !== undefined) {
+        Metro.colorSelectorSetup(window["metroColorSelectorSetup"]);
+    }
+
+    Metro.Component('color-selector', {
+        init: function( options, elem ) {
+            this._super(elem, options, ColorSelectorDefaultConfig, {
+                // define instance vars here
+                id: Utils.elementId("color-selector"),
+                defaultSwatches: [],
+                showValues: [],
+                userColors: [],
+                showAsString: [],
+                hue: 0,
+                saturation: 0,
+                lightness: 1,
+                alpha: 1,
+                hsl: null,
+                hsla: null,
+                hsv: null,
+                rgb: null,
+                rgba: null,
+                cmyk: null,
+                hex: null,
+                inputInterval: null,
+                locale: null
+            });
+            return this;
+        },
+
+        _create: function(){
+            var o = this.options;
+
+            if (Utils.isValue(o.defaultSwatches)) this.defaultSwatches = o.defaultSwatches.toArray(",").map(function (el){return el.toUpperCase();});
+            if (Utils.isValue(o.showValues)) this.showValues = o.showValues.toArray(",");
+            if (Utils.isValue(o.userColors)) this.userColors = o.userColors.toArray(",").map(function (el){return el.toUpperCase();});
+            if (Utils.isValue(o.showAsString)) this.showAsString = o.showAsString.toArray(",");
+
+            this.locale = Metro.locales[o.locale]['colorSelector'];
+
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('color-selector-create');
+        },
+
+        _createStructure: function(){
+            var that = this, element = this.element, o = this.options, locale = this.locale;
+            var colorBox, row, swatches, map, value, inputs, radios,
+                userColorsActions, hueCanvas, shadeCanvas, hueCursor, shadeCursor,
+                colorBlock, alphaCanvas, alphaCursor;
+
+            element.addClass("color-selector").addClass(o.clsSelector);
+
+            element.append( colorBox = $("<div>").addClass("color-box") );
+
+            colorBox.append( row = $("<div>").addClass("row") );
+
+            row.append( swatches = $("<div>").addClass("default-swatches").addClass(o.clsSwatches) );
+            $.each(this.defaultSwatches, function(){
+                swatches.append(
+                    $("<button>")
+                        .attr("data-color", this)
+                        .attr("type", "button")
+                        .addClass("swatch")
+                        .addClass(o.clsSwatch)
+                        .css("background-color", this)
+                );
+            });
+
+            colorBox.append( row = $("<div>").addClass("row") );
+
+            row.append( map = $("<div>").addClass("color-map") );
+            map.append( shadeCursor = $("<button>").attr("type", "button").addClass("cursor color-cursor") )
+            map.append( shadeCanvas = $("<canvas>").addClass("color-canvas") )
+
+            row.append( map = $("<div>").addClass("hue-map") );
+            map.append( hueCursor = $("<button>").attr("type", "button").addClass("cursor hue-cursor") )
+            map.append( hueCanvas = $("<canvas>").addClass("hue-canvas") )
+
+            row.append( map = $("<div>").addClass("alpha-map") );
+            map.append( alphaCursor = $("<button>").attr("type", "button").addClass("cursor alpha-cursor") )
+            map.append( alphaCanvas = $("<canvas>").addClass("alpha-canvas") )
+
+            colorBox.append( row = $("<div>").addClass("row color-values-block") );
+
+            row.append( value = $("<div>").addClass("color-value-hex") );
+            value.append( $("<input type='radio' name='returnType' value='hex' checked>").addClass("check-color-value-hex") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-hex") );
+            colorBlock.append( $("<input type='text' data-prepend='HEX:'>").addClass("input-small value-hex") );
+
+            row.append( value = $("<div>").addClass("color-value-rgb") );
+            value.append( $("<input type='radio' name='returnType' value='rgb'>").addClass("check-color-value-rgb") );
+            value.append( colorBlock = $("<div>").addClass("color-block color-rgb") );
+            colorBlock.append( $("<input type='text' data-prepend='R:'>").addClass("input-small value-r") );
+            colorBlock.append( $("<input type='text' data-prepend='G:'>").addClass("input-small value-g") );
+            colorBlock.append( $("<input type='text' data-prepend='B:'>").addClass("input-small value-b") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-rgb") );
+            colorBlock.append( $("<input type='text' data-prepend='RGB:'>").addClass("input-small value-rgb") );
+
+            if (this.showAsString.indexOf("rgb") > -1) {
+                value.find(".value-r,.value-g,.value-b").parent().hide();
+            } else {
+                value.find(".value-rgb").parent().hide();
+            }
+
+            row.append( value = $("<div>").addClass("color-value-rgba") );
+            value.append( $("<input type='radio' name='returnType' value='rgba'>").addClass("check-color-value-rgba") );
+            value.append( colorBlock = $("<div>").addClass("color-block color-rgba") );
+            colorBlock.append( $("<input type='text' data-prepend='R:'>").addClass("input-small value-r") );
+            colorBlock.append( $("<input type='text' data-prepend='G:'>").addClass("input-small value-g") );
+            colorBlock.append( $("<input type='text' data-prepend='B:'>").addClass("input-small value-b") );
+            colorBlock.append( $("<input type='text' data-prepend='A:'>").addClass("input-small value-a") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-rgba") );
+            colorBlock.append( $("<input type='text' data-prepend='RGBA:'>").addClass("input-small value-rgba") );
+
+            if (this.showAsString.indexOf("rgba") > -1) {
+                value.find(".value-r,.value-g,.value-b,.value-a").parent().hide();
+            } else {
+                value.find(".value-rgba").parent().hide();
+            }
+
+            row.append( value = $("<div>").addClass("color-value-hsl") );
+            value.append( $("<input type='radio' name='returnType' value='hsl'>").addClass("check-color-value-hsl") );
+            value.append( colorBlock = $("<div>").addClass("color-block color-hsl") );
+            colorBlock.append( $("<input type='text' data-prepend='H:'>").addClass("input-small value-h") );
+            colorBlock.append( $("<input type='text' data-prepend='S:'>").addClass("input-small value-s") );
+            colorBlock.append( $("<input type='text' data-prepend='L:'>").addClass("input-small value-l") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-hsl") );
+            colorBlock.append( $("<input type='text' data-prepend='HSL:'>").addClass("input-small value-hsl") );
+
+            if (this.showAsString.indexOf("hsl") > -1) {
+                value.find(".value-h,.value-s,.value-l").parent().hide();
+            } else {
+                value.find(".value-hsl").parent().hide();
+            }
+
+            row.append( value = $("<div>").addClass("color-value-hsla") );
+            value.append( $("<input type='radio' name='returnType' value='hsla'>").addClass("check-color-value-hsla") );
+            value.append( colorBlock = $("<div>").addClass("color-block color-hsla") );
+            colorBlock.append( $("<input type='text' data-prepend='H:'>").addClass("input-small value-h") );
+            colorBlock.append( $("<input type='text' data-prepend='S:'>").addClass("input-small value-s") );
+            colorBlock.append( $("<input type='text' data-prepend='L:'>").addClass("input-small value-l") );
+            colorBlock.append( $("<input type='text' data-prepend='A:'>").addClass("input-small value-a") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-hsla") );
+            colorBlock.append( $("<input type='text' data-prepend='HSLA:'>").addClass("input-small value-hsla") );
+
+            if (this.showAsString.indexOf("hsla") > -1) {
+                value.find(".value-h,.value-s,.value-l,.value-a").parent().hide();
+            } else {
+                value.find(".value-hsla").parent().hide();
+            }
+
+            row.append( value = $("<div>").addClass("color-value-hsv") );
+            value.append( $("<input type='radio' name='returnType' value='hsv'>").addClass("check-color-value-hsl") );
+            value.append( colorBlock = $("<div>").addClass("color-block color-hsv") );
+            colorBlock.append( $("<input type='text' data-prepend='H:'>").addClass("input-small value-h") );
+            colorBlock.append( $("<input type='text' data-prepend='S:'>").addClass("input-small value-s") );
+            colorBlock.append( $("<input type='text' data-prepend='V:'>").addClass("input-small value-v") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-hsv") );
+            colorBlock.append( $("<input type='text' data-prepend='HSV:'>").addClass("input-small value-hsv") );
+
+            if (this.showAsString.indexOf("hsv") > -1) {
+                value.find(".value-h,.value-s,.value-v").parent().hide();
+            } else {
+                value.find(".value-hsv").parent().hide();
+            }
+
+            row.append( value = $("<div>").addClass("color-value-cmyk") );
+            value.append( $("<input type='radio' name='returnType' value='cmyk'>").addClass("check-color-value-cmyk") );
+            value.append( colorBlock = $("<div>").addClass("color-block color-cmyk") );
+            colorBlock.append( $("<input type='text' data-prepend='C:'>").addClass("input-small value-c") );
+            colorBlock.append( $("<input type='text' data-prepend='M:'>").addClass("input-small value-m") );
+            colorBlock.append( $("<input type='text' data-prepend='Y:'>").addClass("input-small value-y") );
+            colorBlock.append( $("<input type='text' data-prepend='K:'>").addClass("input-small value-k") );
+            value.append( colorBlock = $("<div>").addClass("color-block as-string color-cmyk") );
+            colorBlock.append( $("<input type='text' data-prepend='CMYK:'>").addClass("input-small value-cmyk") );
+
+            if (this.showAsString.indexOf("cmyk") > -1) {
+                value.find(".value-s,.value-m,.value-y,.value-k").parent().hide();
+            } else {
+                value.find(".value-cmyk").parent().hide();
+            }
+
+            colorBox.append( row = $("<div>").addClass("row user-colors-container") );
+            row.append( $("<div>").addClass("user-colors-title").addClass(o.clsUserColorsTitle).html(o.userColorsTitle || locale['userColorsTitle']) );
+            row.append( $("<div>").addClass("user-colors").addClass(o.clsUserColors) );
+            row.append( userColorsActions = $("<div>").addClass("user-colors-actions") );
+            userColorsActions.append(
+                $("<button>")
+                    .addClass("button add-button")
+                    .addClass(o.clsUserColorButton)
+                    .html("<span class='user-swatch'></span><span>"+(o.addUserColorTitle || locale['addUserColorButton'])+"</span>")
+            );
+
+            inputs = colorBox.find("input[type=text]");
+            Metro.makePlugin(inputs, 'input', {
+                clearButton: false,
+                clsPrepend: o.clsLabel,
+                clsComponent: o.clsInput
+            });
+            inputs.addClass(o.clsValue);
+
+            if (o.readonlyInput) {
+                inputs.attr("readonly", true);
+            }
+
+            radios = colorBox.find("input[type=radio]").each(function(){
+                $(this).attr("name", that.id + "-returnType");
+            });
+            radios.each(function(){
+                if ($(this).val() === o.returnValueType) {
+                    this.checked = true;
+                }
+            });
+            Metro.makePlugin(radios, 'radio', {
+                style: 2
+            });
+
+            $.each(supportedColorTypes.toArray(","), function(){
+                if (that.showValues.indexOf(this) === -1) element.find(".color-value-"+this).hide();
+            });
+
+            if (!o.showUserColors) {
+                element.find(".user-colors-container").hide();
+            }
+
+            if (!o.showAlphaChannel) {
+                element.addClass("no-alpha-channel");
+                $.each(["rgba", "hsla"], function(){
+                    element.find(".color-value-"+this).hide();
+                });
+            }
+
+            this._fillUserColors();
+
+            this.hueCanvas = hueCanvas;
+            this.hueCursor = hueCursor;
+            this.shadeCanvas = shadeCanvas;
+            this.shadeCursor = shadeCursor;
+            this.alphaCanvas = alphaCanvas;
+            this.alphaCursor = alphaCursor;
+
+            this._createShadeCanvas();
+            this._createHueCanvas();
+            this._createAlphaCanvas();
+            this._setColorValues();
+            this._updateCursorsColor();
+
+            if (o.initColor && Metro.colors.isColor(o.initColor)) {
+                this._colorToPos(typeof o.initColor === "string" ? Metro.colors.parse(o.initColor) : o.initColor);
+            }
+        },
+
+        _createShadeCanvas: function(color){
+            var canvas = this.shadeCanvas[0];
+            var ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(!color) color = '#f00';
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            var whiteGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            whiteGradient.addColorStop(0, "#fff");
+            whiteGradient.addColorStop(1, "transparent");
+            ctx.fillStyle = whiteGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            var blackGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            blackGradient.addColorStop(0, "transparent");
+            blackGradient.addColorStop(1, "#000");
+            ctx.fillStyle = blackGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        },
+
+        _createHueCanvas: function(){
+            var canvas = this.hueCanvas[0];
+            var ctx = canvas.getContext('2d');
+            var hueGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+            hueGradient.addColorStop(0.00, "hsl(0,100%,50%)");
+            hueGradient.addColorStop(0.17, "hsl(298.8, 100%, 50%)");
+            hueGradient.addColorStop(0.33, "hsl(241.2, 100%, 50%)");
+            hueGradient.addColorStop(0.50, "hsl(180, 100%, 50%)");
+            hueGradient.addColorStop(0.67, "hsl(118.8, 100%, 50%)");
+            hueGradient.addColorStop(0.83, "hsl(61.2,100%,50%)");
+            hueGradient.addColorStop(1.00, "hsl(360,100%,50%)");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = hueGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        },
+
+        _createAlphaCanvas: function(){
+            var canvas = this.alphaCanvas[0];
+            var ctx = canvas.getContext('2d');
+            var alphaGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            var startColor = new Metro.colorPrimitive.HSLA(this.hue, 1, .5, 1).toString(), endColor = "rgba(0,0,0,0)";
+
+            alphaGradient.addColorStop(0.00, startColor);
+            alphaGradient.addColorStop(1.00, endColor);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = alphaGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        },
+
+        _updateHueCursor: function(y){
+            this.hueCursor.css({
+                "top": y
+            });
+        },
+
+        _updateAlphaCursor: function(y){
+            this.alphaCursor.css({
+                "top": y
+            });
+        },
+
+        _getHueColor: function(pageY){
+            var canvas = this.hueCanvas;
+            var offset = canvas.offset();
+            var height = canvas.height();
+            var y, percent, color, hue;
+
+            y = pageY - offset.top;
+
+            if ( y > height ) y = height;
+            if ( y < 0 ) y = 0;
+
+            percent = y / height;
+            hue = 360 - (360 * percent);
+            if (hue === 360) hue = 0;
+            color = "hsl("+ hue +", 100%, 50%)";
+            this.hue = hue;
+
+            this._createShadeCanvas(color);
+            this._createAlphaCanvas();
+            this._updateHueCursor(y);
+            this._updateCursorsColor();
+            this._setColorValues();
+        },
+
+        _getAlphaValue: function(pageY){
+            var canvas = this.alphaCanvas;
+            var offset = canvas.offset();
+            var height = canvas.height();
+            var y, percent;
+
+            y = pageY - offset.top;
+
+            if ( y > height ) y = height;
+            if ( y < 0 ) y = 0;
+
+            percent = 1 - y / height;
+            this.alpha = percent.toFixed(2);
+
+            this._updateAlphaCursor(y);
+            this._updateCursorsColor();
+            this._setColorValues();
+        },
+
+        _getShadeColor: function(pageX, pageY){
+            var canvas = this.shadeCanvas;
+            var offset = canvas.offset();
+            var width = canvas.width();
+            var height = canvas.height();
+            var x = pageX - offset.left;
+            var y = pageY - offset.top;
+
+            if(x > width) x = width;
+            if(x < 0) x = 0;
+            if(y > height) y = height;
+            if(y < 0) y = .1;
+
+            var xRatio = x / width * 100;
+            var yRatio = y / height * 100;
+            var hsvValue = 1 - (yRatio / 100);
+            var hsvSaturation = xRatio / 100;
+            var lightness = (hsvValue / 2) * (2 - hsvSaturation);
+            var saturation = (hsvValue * hsvSaturation) / (1 - Math.abs(2 * lightness - 1));
+
+            if (isNaN(lightness)) {
+                lightness = 0;
+            }
+
+            if (isNaN(saturation)) {
+                saturation = 0;
+            }
+
+            this.lightness = lightness;
+            this.saturation = saturation;
+
+            this._updateShadeCursor(x, y);
+            this._updateCursorsColor();
+            this._setColorValues();
+        },
+
+        _updateCursorsColor: function(){
+            this.shadeCursor.css({backgroundColor: Metro.colors.toHEX(new Metro.colorPrimitive.HSL(this.hue, this.saturation, this.lightness))});
+            this.hueCursor.css({backgroundColor: Metro.colors.toHEX(new Metro.colorPrimitive.HSL(this.hue, 1, .5))});
+            this.alphaCursor.css({backgroundColor: Metro.colors.toRGBA(new Metro.colorPrimitive.HSL(this.hue, 1, .5), this.alpha).toString()});
+        },
+
+        _updateShadeCursor: function(x, y){
+            this.shadeCursor.css({
+                top: y,
+                left: x
+            })
+        },
+
+        _colorToPos: function (color){
+            var shadeCanvasRect = this.shadeCanvas[0].getBoundingClientRect();
+            var hueCanvasRect = this.hueCanvas[0].getBoundingClientRect();
+            var alphaCanvasRect = this.alphaCanvas[0].getBoundingClientRect();
+            var hsl = Metro.colors.toHSL(color);
+            var hsla = Metro.colors.toHSLA(color, color.a);
+            var hsv = Metro.colors.toHSV(color);
+            var x = shadeCanvasRect.width * hsv.s;
+            var y = shadeCanvasRect.height * (1 - hsv.v);
+            var hueY = hueCanvasRect.height - ((hsl.h / 360) * hueCanvasRect.height);
+            var alphaY = (1 - hsla.a) * alphaCanvasRect.height;
+
+            this.hue = hsl.h;
+            this.saturation = hsl.s;
+            this.lightness = hsl.l;
+            this.alpha = hsla.a;
+
+            this._updateHueCursor(hueY);
+            this._updateShadeCursor(x, y);
+            this._updateAlphaCursor(alphaY);
+            this._updateCursorsColor();
+            this._createShadeCanvas("hsl("+ this.hue +", 100%, 50%)");
+            this._createAlphaCanvas();
+            this._setColorValues();
+        },
+
+        _setColorValues: function(){
+            var element = this.element, o = this.options;
+            var hsl = Metro.colors.toHSL(new Metro.colorPrimitive.HSL(this.hue, this.saturation, this.lightness));
+            var hsla = Metro.colors.toHSLA(new Metro.colorPrimitive.HSLA(this.hue, this.saturation, this.lightness, this.alpha));
+            var rgb = Metro.colors.toRGB(hsl);
+            var rgba = Metro.colors.toRGBA(rgb, this.alpha);
+            var hsv = Metro.colors.toHSV(hsl);
+            var cmyk = Metro.colors.toCMYK(hsl);
+            var hex = Metro.colors.toHEX(hsl);
+            var controller = $(o.controller);
+            var percent = o.hslMode === "percent";
+
+            this.hsl = hsl;
+            this.hsla = hsla;
+            this.hsv = hsv;
+            this.rgb = rgb;
+            this.rgba = rgba;
+            this.hex = hex;
+            this.cmyk = cmyk;
+
+            element.find(".color-value-hex .value-hex input").val(hex);
+
+            element.find(".color-value-rgb .value-r input").val(rgb.r);
+            element.find(".color-value-rgb .value-g input").val(rgb.g);
+            element.find(".color-value-rgb .value-b input").val(rgb.b);
+            element.find(".color-value-rgb .value-rgb input").val(rgb.toString());
+
+            element.find(".color-value-rgba .value-r input").val(rgba.r);
+            element.find(".color-value-rgba .value-g input").val(rgba.g);
+            element.find(".color-value-rgba .value-b input").val(rgba.b);
+            element.find(".color-value-rgba .value-a input").val(rgba.a);
+            element.find(".color-value-rgba .value-rgba input").val(rgba.toString());
+
+            element.find(".color-value-hsl .value-h input").val(hsl.h.toFixed(0));
+            element.find(".color-value-hsl .value-s input").val(percent ? Math.round(hsl.s*100)+"%" : hsl.s.toFixed(4));
+            element.find(".color-value-hsl .value-l input").val(percent ? Math.round(hsl.l*100)+"%" : hsl.l.toFixed(4));
+            element.find(".color-value-hsl .value-hsl input").val(hsl.toString());
+
+            element.find(".color-value-hsla .value-h input").val(hsla.h.toFixed(0));
+            element.find(".color-value-hsla .value-s input").val(percent ? Math.round(hsla.s*100)+"%" : hsl.s.toFixed(4));
+            element.find(".color-value-hsla .value-l input").val(percent ? Math.round(hsla.l*100)+"%" : hsl.l.toFixed(4));
+            element.find(".color-value-hsla .value-a input").val(hsla.a);
+            element.find(".color-value-hsla .value-hsla input").val(hsla.toString());
+
+            element.find(".color-value-hsv .value-h input").val(hsv.h.toFixed(0));
+            element.find(".color-value-hsv .value-s input").val(percent ? Math.round(hsv.s*100)+"%" : hsv.s.toFixed(4));
+            element.find(".color-value-hsv .value-v input").val(percent ? Math.round(hsv.v*100)+"%" : hsv.v.toFixed(4));
+            element.find(".color-value-hsv .value-hsv input").val(hsv.toString());
+
+            element.find(".color-value-cmyk .value-c input").val(cmyk.c.toFixed(0));
+            element.find(".color-value-cmyk .value-m input").val(cmyk.m.toFixed(0));
+            element.find(".color-value-cmyk .value-y input").val(cmyk.y.toFixed(0));
+            element.find(".color-value-cmyk .value-k input").val(cmyk.k.toFixed(0));
+            element.find(".color-value-cmyk .value-cmyk input").val(cmyk.toString());
+
+            element.find(".user-colors-actions .user-swatch").css({
+                backgroundColor: hex
+            });
+
+            if (controller && controller.length) {
+                controller.val(this.val()).trigger("change");
+            }
+
+            this._fireEvent("select-color", {
+                color: this.val(),
+                primitive: {
+                    hsl: this.hsl,
+                    hsla: this.hsla,
+                    rgb: this.rgb,
+                    rgba: this.rgba,
+                    hsv: this.hsv,
+                    cmyk: this.cmyk,
+                    hex: this.hex
+                }
+            });
+        },
+
+        _clearInputInterval: function(){
+            clearInterval(this.inputInterval);
+            this.inputInterval = false;
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element, o = this.options;
+            var hueMap = element.find(".hue-map");
+            var alphaMap = element.find(".alpha-map");
+            var shadeMap = element.find(".color-map");
+            var controller = $(o.controller);
+            var colorValues = element.find(".color-values-block input[type=text]");
+
+            colorValues.on(Metro.events.inputchange, function(){
+                var input = $(this);
+
+                that._clearInputInterval();
+
+                if (!that.inputInterval) that.inputInterval = setTimeout(function(){
+                    var colorGroup = input.closest(".color-block");
+                    var colorType;
+                    var color, parts;
+
+                    if (colorGroup.hasClass("color-hex")) {
+                        colorType = "hex";
+                    } else if (colorGroup.hasClass("color-rgb")) {
+                        colorType = "rgb";
+                    } else if (colorGroup.hasClass("color-rgba")) {
+                        colorType = "rgba";
+                    } else if (colorGroup.hasClass("color-hsl")) {
+                        colorType = "hsl";
+                    } else if (colorGroup.hasClass("color-hsla")) {
+                        colorType = "hsla";
+                    } else if (colorGroup.hasClass("color-hsv")) {
+                        colorType = "hsv";
+                    } else if (colorGroup.hasClass("color-cmyk")) {
+                        colorType = "cmyk";
+                    }
+
+                    if (colorGroup.hasClass("as-string")) {
+                        color = input.val();
+                    } else {
+                        parts = [];
+                        $.each(colorGroup.find("input"), function(){
+                            parts.push(this.value);
+                        });
+                        color = colorType + "(" +parts.join(", ")+ ")";
+                    }
+                    if (color && Metro.colors.isColor(color)) {
+                        that.val(color);
+                    }
+
+                    that._clearInputInterval();
+                }, o.inputThreshold);
+            });
+
+            if (controller && controller.length) {
+                controller.on(Metro.events.inputchange, function(){
+                    that._clearInputInterval();
+                    if (!that.inputInterval) that.inputInterval = setTimeout(function(){
+                        var val = controller.val();
+                        if (val && Metro.colors.isColor(val)) {
+                            that.val(val);
+                        }
+                        that._clearInputInterval();
+                    }, o.inputThreshold);
+                });
+            }
+
+            alphaMap.on(Metro.events.startAll, function(e){
+
+                that._getAlphaValue(Utils.pageXY(e).y);
+                that.alphaCursor.addClass("dragging");
+
+                $(document).on(Metro.events.moveAll, function(e){
+                    e.preventDefault();
+                    that._getAlphaValue(Utils.pageXY(e).y);
+                }, {ns: that.id, passive: false});
+
+                $(document).on(Metro.events.stopAll, function(){
+                    that.alphaCursor.removeClass("dragging");
+                    $(document).off(Metro.events.moveAll, {ns: that.id});
+                    $(document).off(Metro.events.stopAll, {ns: that.id});
+                }, {ns: that.id});
+            });
+
+            hueMap.on(Metro.events.startAll, function(e){
+
+                that._getHueColor(Utils.pageXY(e).y);
+                that.hueCursor.addClass("dragging");
+
+                $(document).on(Metro.events.moveAll, function(e){
+                    e.preventDefault();
+                    that._getHueColor(Utils.pageXY(e).y);
+                }, {ns: that.id, passive: false});
+
+                $(document).on(Metro.events.stopAll, function(){
+                    that.hueCursor.removeClass("dragging");
+                    $(document).off(Metro.events.moveAll, {ns: that.id});
+                    $(document).off(Metro.events.stopAll, {ns: that.id});
+                }, {ns: that.id});
+            });
+
+            shadeMap.on(Metro.events.startAll, function(e){
+
+                that._getShadeColor(Utils.pageXY(e).x, Utils.pageXY(e).y);
+                that.shadeCursor.addClass("dragging");
+
+                $(document).on(Metro.events.moveAll, function(e){
+                    e.preventDefault();
+                    that._getShadeColor(Utils.pageXY(e).x, Utils.pageXY(e).y);
+                }, {ns: that.id, passive: false});
+
+                $(document).on(Metro.events.stopAll, function(){
+                    that.shadeCursor.removeClass("dragging");
+                    $(document).off(Metro.events.moveAll, {ns: that.id});
+                    $(document).off(Metro.events.stopAll, {ns: that.id});
+                }, {ns: that.id})
+            });
+
+            element.on("click", ".swatch", function(){
+                that._colorToPos($(this).attr("data-color"));
+            });
+
+            element.on("click", ".add-button", function(){
+                var color = Metro.colors.toHEX(new Metro.colorPrimitive.HSL(that.hue, that.saturation, that.lightness)).toUpperCase();
+
+                if (that.userColors.indexOf(color) > -1) {
+                    return ;
+                }
+
+                that.userColors.push(color);
+
+                element.find(".user-colors").append(
+                    $("<button>")
+                        .attr("data-color", color)
+                        .attr("type", "button")
+                        .addClass("swatch user-swatch")
+                        .css({
+                            backgroundColor: color
+                        })
+                );
+            });
+
+            element.find("input[type=radio]").on("click", function(){
+                o.returnValueType = $(this).val();
+                that._setColorValues();
+            });
+        },
+
+        val: function(v){
+            var o = this.options;
+
+            if (!Utils.isValue(v) || !Metro.colors.isColor(v)) {
+                var res;
+                switch (o.returnValueType.toLowerCase()) {
+                    case "rgb":
+                        res = this.rgb;
+                        break;
+                    case "rgba":
+                        res = this.rgba;
+                        break;
+                    case "hsl":
+                        res = this.hsl;
+                        break;
+                    case "hsla":
+                        res = this.hsla;
+                        break;
+                    case "hsv":
+                        res = this.hsv;
+                        break;
+                    case "cmyk":
+                        res = this.cmyk;
+                        break;
+                    default: res = this.hex;
+                }
+                return o.returnAsString ? res.toString() : res;
+            }
+
+            if (!Metro.colors.isColor(v)) {
+                return ;
+            }
+
+            this._colorToPos(Metro.colors.parse(v));
+        },
+
+        user: function(v){
+            if (!Utils.isValue(v)) {
+                return this.userColors;
+            }
+
+            if (!Array.isArray(v) && typeof v !== "string") {
+                return ;
+            }
+
+            if (typeof v === "string") {
+                this.userColors = v.toArray(",").map(function (el){return el.toUpperCase();});
+            } else {
+                this.userColors = v.map(function (el){return el.toUpperCase();});
+            }
+
+            this._fillUserColors();
+        },
+
+        _fillUserColors: function(){
+            var colors = this.element.find(".user-colors").clear();
+
+            $.each(this.userColors, function(){
+                var color = this;
+                colors.append(
+                    $("<button>")
+                        .attr("data-color", color)
+                        .attr("type", "button")
+                        .addClass("swatch user-swatch")
+                        .css({
+                            backgroundColor: color
+                        })
+                )
+            });
+        },
+
+        changeAttribute: function(attr, newValue){
+            var o = this.options;
+
+            if (attr === "data-return-value-type") {
+                o.returnValueType = newValue;
+            }
+
+            if (attr === "data-return-as-string") {
+                o.returnValueType = Utils.bool(newValue);
+            }
+        },
+
+        destroy: function(){
+            this.element.remove();
+        }
+    });
+
+    Metro.defaults.ColorSelectorDefaultConfig = ColorSelectorDefaultConfig;
+}(Metro, m4q));
+
+
+(function(Metro, $) {
+    'use strict';
+    var Types = {
+        HEX: "hex",
+        HEXA: "hexa",
+        RGB: "rgb",
+        RGBA: "rgba",
+        HSV: "hsv",
+        HSL: "hsl",
+        HSLA: "hsla",
+        CMYK: "cmyk",
+        UNKNOWN: "unknown"
+    };
+
+    Metro.colorsSetup = function (options) {
+        ColorsDefaultConfig = $.extend({}, ColorsDefaultConfig, options);
+    };
+
+    if (typeof window["metroColorsSetup"] !== undefined) {
+        Metro.colorsSetup(window["metroColorsSetup"]);
+    }
+
+    var ColorsDefaultConfig = {
+        angle: 30,
+        resultType: 'hex',
+        results: 6,
+        baseLight: "#ffffff",
+        baseDark: "self"
+    };
+
+    // function HEX(r, g, b) {
+    //     this.r = r || "00";
+    //     this.g = g || "00";
+    //     this.b = b || "00";
+    // }
+    //
+    // HEX.prototype.toString = function(){
+    //     return "#" + [this.r, this.g, this.b].join("");
+    // }
+
+    // function dec2hex(d){
+    //     return Math.round(parseFloat(d) * 255).toString(16);
+    // }
+    //
+    // function hex2dec(h){
+    //     return (parseInt(h, 16) / 255);
+    // }
+
+    function shift(h, angle){
+        h += angle;
+        while (h >= 360.0) h -= 360.0;
+        while (h < 0.0) h += 360.0;
+        return h;
+    }
+
+    function clamp(val){
+        return Math.min(1, Math.max(0, val));
+    }
+
+    function RGB(r, g, b){
+        this.r = r || 0;
+        this.g = g || 0;
+        this.b = b || 0;
+    }
+
+    RGB.prototype.toString = function(){
+        return "rgb(" + [this.r, this.g, this.b].join(", ") + ")";
+    }
+
+    function RGBA(r, g, b, a){
+        this.r = r || 0;
+        this.g = g || 0;
+        this.b = b || 0;
+        this.a = a === 0 ? 0 : a || 1;
+    }
+
+    RGBA.prototype.toString = function(){
+        return "rgba(" + [this.r, this.g, this.b, parseFloat(this.a).toFixed(2)].join(", ") + ")";
+    }
+
+    function HSV(h, s, v){
+        this.h = h || 0;
+        this.s = s || 0;
+        this.v = v || 0;
+    }
+
+    HSV.prototype.toString2 = function(){
+        return "hsv(" + [this.h, this.s, this.v].join(", ") + ")";
+    }
+
+    HSV.prototype.toString = function(){
+        return "hsv(" + [Math.round(this.h), Math.round(this.s*100)+"%", Math.round(this.v*100)+"%"].join(", ") + ")";
+    }
+
+    function HSL(h, s, l){
+        this.h = h || 0;
+        this.s = s || 0;
+        this.l = l || 0;
+    }
+
+    HSL.prototype.toString2 = function(){
+        return "hsl(" + [this.h, this.s, this.l].join(", ") + ")";
+    }
+
+    HSL.prototype.toString = function(){
+        return "hsl(" + [Math.round(this.h), Math.round(this.s*100)+"%", Math.round(this.l*100)+"%"].join(", ") + ")";
+    }
+
+    function HSLA(h, s, l, a){
+        this.h = h || 0;
+        this.s = s || 0;
+        this.l = l || 0;
+        this.a = a === 0 ? 0 : a || 1;
+    }
+
+    HSLA.prototype.toString2 = function(){
+        return "hsla(" + [this.h, this.s, this.l, this.a].join(", ") + ")";
+    }
+
+    HSLA.prototype.toString = function(){
+        return "hsla(" + [Math.round(this.h), Math.round(this.s*100)+"%", Math.round(this.l*100)+"%", parseFloat(this.a).toFixed(2)].join(", ") + ")";
+    }
+
+    function CMYK(c, m, y, k){
+        this.c = c || 0;
+        this.m = m || 0;
+        this.y = y || 0;
+        this.k = k || 0;
+    }
+
+    CMYK.prototype.toString = function(){
+        return "cmyk(" + [this.c, this.m, this.y, this.k].join(", ") + ")";
+    }
+
+    var Colors = {
+
+        PALETTES: {
+            ALL: "all",
+            METRO: "metro",
+            STANDARD: "standard"
+        },
+
+        metro: {
+            lime: '#a4c400',
+            green: '#60a917',
+            emerald: '#008a00',
+            blue: '#00AFF0',
+            teal: '#00aba9',
+            cyan: '#1ba1e2',
+            cobalt: '#0050ef',
+            indigo: '#6a00ff',
+            violet: '#aa00ff',
+            pink: '#dc4fad',
+            magenta: '#d80073',
+            crimson: '#a20025',
+            red: '#CE352C',
+            orange: '#fa6800',
+            amber: '#f0a30a',
+            yellow: '#fff000',
+            brown: '#825a2c',
+            olive: '#6d8764',
+            steel: '#647687',
+            mauve: '#76608a',
+            taupe: '#87794e'
+        },
+
+        standard: {
+            aliceblue: "#f0f8ff",
+            antiquewhite: "#faebd7",
+            aqua: "#00ffff",
+            aquamarine: "#7fffd4",
+            azure: "#f0ffff",
+            beige: "#f5f5dc",
+            bisque: "#ffe4c4",
+            black: "#000000",
+            blanchedalmond: "#ffebcd",
+            blue: "#0000ff",
+            blueviolet: "#8a2be2",
+            brown: "#a52a2a",
+            burlywood: "#deb887",
+            cadetblue: "#5f9ea0",
+            chartreuse: "#7fff00",
+            chocolate: "#d2691e",
+            coral: "#ff7f50",
+            cornflowerblue: "#6495ed",
+            cornsilk: "#fff8dc",
+            crimson: "#dc143c",
+            cyan: "#00ffff",
+            darkblue: "#00008b",
+            darkcyan: "#008b8b",
+            darkgoldenrod: "#b8860b",
+            darkgray: "#a9a9a9",
+            darkgreen: "#006400",
+            darkkhaki: "#bdb76b",
+            darkmagenta: "#8b008b",
+            darkolivegreen: "#556b2f",
+            darkorange: "#ff8c00",
+            darkorchid: "#9932cc",
+            darkred: "#8b0000",
+            darksalmon: "#e9967a",
+            darkseagreen: "#8fbc8f",
+            darkslateblue: "#483d8b",
+            darkslategray: "#2f4f4f",
+            darkturquoise: "#00ced1",
+            darkviolet: "#9400d3",
+            deeppink: "#ff1493",
+            deepskyblue: "#00bfff",
+            dimgray: "#696969",
+            dodgerblue: "#1e90ff",
+            firebrick: "#b22222",
+            floralwhite: "#fffaf0",
+            forestgreen: "#228b22",
+            fuchsia: "#ff00ff",
+            gainsboro: "#DCDCDC",
+            ghostwhite: "#F8F8FF",
+            gold: "#ffd700",
+            goldenrod: "#daa520",
+            gray: "#808080",
+            green: "#008000",
+            greenyellow: "#adff2f",
+            honeydew: "#f0fff0",
+            hotpink: "#ff69b4",
+            indianred: "#cd5c5c",
+            indigo: "#4b0082",
+            ivory: "#fffff0",
+            khaki: "#f0e68c",
+            lavender: "#e6e6fa",
+            lavenderblush: "#fff0f5",
+            lawngreen: "#7cfc00",
+            lemonchiffon: "#fffacd",
+            lightblue: "#add8e6",
+            lightcoral: "#f08080",
+            lightcyan: "#e0ffff",
+            lightgoldenrodyellow: "#fafad2",
+            lightgray: "#d3d3d3",
+            lightgreen: "#90ee90",
+            lightpink: "#ffb6c1",
+            lightsalmon: "#ffa07a",
+            lightseagreen: "#20b2aa",
+            lightskyblue: "#87cefa",
+            lightslategray: "#778899",
+            lightsteelblue: "#b0c4de",
+            lightyellow: "#ffffe0",
+            lime: "#00ff00",
+            limegreen: "#32dc32",
+            linen: "#faf0e6",
+            magenta: "#ff00ff",
+            maroon: "#800000",
+            mediumaquamarine: "#66cdaa",
+            mediumblue: "#0000cd",
+            mediumorchid: "#ba55d3",
+            mediumpurple: "#9370db",
+            mediumseagreen: "#3cb371",
+            mediumslateblue: "#7b68ee",
+            mediumspringgreen: "#00fa9a",
+            mediumturquoise: "#48d1cc",
+            mediumvioletred: "#c71585",
+            midnightblue: "#191970",
+            mintcream: "#f5fffa",
+            mistyrose: "#ffe4e1",
+            moccasin: "#ffe4b5",
+            navajowhite: "#ffdead",
+            navy: "#000080",
+            oldlace: "#fdd5e6",
+            olive: "#808000",
+            olivedrab: "#6b8e23",
+            orange: "#ffa500",
+            orangered: "#ff4500",
+            orchid: "#da70d6",
+            palegoldenrod: "#eee8aa",
+            palegreen: "#98fb98",
+            paleturquoise: "#afeeee",
+            palevioletred: "#db7093",
+            papayawhip: "#ffefd5",
+            peachpuff: "#ffdab9",
+            peru: "#cd853f",
+            pink: "#ffc0cb",
+            plum: "#dda0dd",
+            powderblue: "#b0e0e6",
+            purple: "#800080",
+            rebeccapurple: "#663399",
+            red: "#ff0000",
+            rosybrown: "#bc8f8f",
+            royalblue: "#4169e1",
+            saddlebrown: "#8b4513",
+            salmon: "#fa8072",
+            sandybrown: "#f4a460",
+            seagreen: "#2e8b57",
+            seashell: "#fff5ee",
+            sienna: "#a0522d",
+            silver: "#c0c0c0",
+            slyblue: "#87ceeb",
+            slateblue: "#6a5acd",
+            slategray: "#708090",
+            snow: "#fffafa",
+            springgreen: "#00ff7f",
+            steelblue: "#4682b4",
+            tan: "#d2b48c",
+            teal: "#008080",
+            thistle: "#d8bfd8",
+            tomato: "#ff6347",
+            turquoise: "#40e0d0",
+            violet: "#ee82ee",
+            wheat: "#f5deb3",
+            white: "#ffffff",
+            whitesmoke: "#f5f5f5",
+            yellow: "#ffff00",
+            yellowgreen: "#9acd32"
+        },
+
+        all: {},
+
+        init: function(){
+            this.all = $.extend( {}, this.standard, this.metro );
+            return this;
+        },
+
+        color: function(name, palette){
+            palette = palette || this.PALETTES.ALL;
+            return this[palette][name] !== undefined ? this[palette][name] : false;
+        },
+
+        palette: function(palette){
+            palette = palette || this.PALETTES.ALL;
+            return Object.keys(this[palette]);
+        },
+
+        expandHexColor: function(hex){
+            if (typeof hex !== "string") {
+                throw new Error("Value is not a string!");
+            }
+            if (hex[0] === "#" && hex.length === 4) {
+                var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+                return (
+                    "#" +
+                    hex.replace(shorthandRegex, function(m, r, g, b) {
+                        return r + r + g + g + b + b;
+                    })
+                );
+            }
+            return hex[0] === "#" ? hex : "#" + hex;
+        },
+
+        colors: function(palette){
+            palette = palette || this.PALETTES.ALL;
+            return Object.values(this[palette]);
+        },
+
+        random: function(colorType, alpha){
+            colorType = colorType || Types.HEX;
+            alpha = typeof alpha !== "undefined" ? alpha : 1;
+
+            var hex, r, g, b;
+
+            r = $.random(0, 255);
+            g = $.random(0, 255);
+            b = $.random(0, 255);
+
+            hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+
+            return colorType === "hex" ? hex : this.toColor(hex, colorType, alpha);
+        },
+
+        parse: function(color){
+            var _color = color.toLowerCase().trim();
+
+            var a = _color
+                .replace(/[^%\d.,]/g, "")
+                .split(",")
+                .map(function(v) {
+                    if (v.indexOf('%') > -1) {
+                        v = ""+parseInt(v)/100;
+                    }
+                    return v.indexOf(".") > -1 ? parseFloat(v) : parseInt(v);
+                });
+
+            if (this.metro[_color]) {
+                return this.expandHexColor(this.metro[_color]);
+            }
+
+            if (this.standard[_color]) {
+                return this.expandHexColor(this.standard[_color]);
+            }
+
+            if (_color[0] === "#") {
+                return this.expandHexColor(_color);
+            }
+
+            if (_color.indexOf("rgba") === 0 && a.length === 4) {
+                return new RGBA(a[0], a[1], a[2], a[3]);
+            }
+            if (_color.indexOf("rgb") === 0 && a.length === 3) {
+                return new RGB(a[0], a[1], a[2]);
+            }
+            if (_color.indexOf("cmyk") === 0 && a.length === 4) {
+                return new CMYK(a[0], a[1], a[2], a[3]);
+            }
+            if (_color.indexOf("hsv") === 0 && a.length === 3) {
+                return new HSV(a[0], a[1], a[2]);
+            }
+            if (_color.indexOf("hsla") === 0 && a.length === 4) {
+                return new HSLA(a[0], a[1], a[2], a[3]);
+            }
+            if (_color.indexOf("hsl")  === 0 && a.length === 3) {
+                return new HSL(a[0], a[1], a[2]);
+            }
+            return undefined;
+        },
+
+        createColor: function(colorType, from){
+            colorType = colorType || "hex";
+            from = from || "#000000";
+
+            var baseColor;
+
+            if (typeof from === "string") {
+                baseColor = this.parse(from);
+            }
+
+            if (!this.isColor(baseColor)) {
+                baseColor = "#000000";
+            }
+
+            return this.toColor(baseColor, colorType.toLowerCase());
+        },
+
+        isDark: function(color){
+            if (!this.isColor(color)) return;
+            var rgb = this.toRGB(color);
+            var YIQ = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            return YIQ < 128;
+        },
+
+        isLight: function(color){
+            return !this.isDark(color);
+        },
+
+        isHSV: function(color){
+            return color instanceof HSV;
+        },
+
+        isHSL: function(color){
+            return color instanceof HSL;
+        },
+
+        isHSLA: function(color){
+            return color instanceof HSLA;
+        },
+
+        isRGB: function(color){
+            return color instanceof RGB;
+        },
+
+        isRGBA: function(color){
+            return color instanceof RGBA;
+        },
+
+        isCMYK: function(color){
+            return color instanceof CMYK;
+        },
+
+        isHEX: function(color){
+            return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color);
+        },
+
+        isColor: function(val){
+            var color = typeof val === "string" ? this.parse(val) : val;
+
+            return !color
+                ? false
+                : this.isHEX(color) ||
+                  this.isRGB(color) ||
+                  this.isRGBA(color) ||
+                  this.isHSV(color) ||
+                  this.isHSL(color) ||
+                  this.isHSLA(color) ||
+                  this.isCMYK(color);
+        },
+
+        check: function(color, type){
+            var that = this, checkFor = typeof type === "string" ? [type] : type;
+            var result = false;
+
+            $.each(checkFor, function(){
+                if (that["is"+this.toUpperCase()](color)) {
+                    result = true;
+                }
+            });
+
+            if (!result) {
+                throw new Error("Value is not a " + type + " color type!");
+            }
+        },
+
+        colorType: function(color){
+            if (this.isHEX(color)) return Types.HEX;
+            if (this.isRGB(color)) return Types.RGB;
+            if (this.isRGBA(color)) return Types.RGBA;
+            if (this.isHSV(color)) return Types.HSV;
+            if (this.isHSL(color)) return Types.HSL;
+            if (this.isHSLA(color)) return Types.HSLA;
+            if (this.isCMYK(color)) return Types.CMYK;
+
+            return Types.UNKNOWN;
+        },
+
+        equal: function(color1, color2){
+            if (!this.isColor(color1) || !this.isColor(color2)) {
+                return false;
+            }
+
+            return this.toHEX(color1) === this.toHEX(color2);
+        },
+
+        colorToString: function(color){
+            return color.toString();
+        },
+
+        hex2rgb: function(color){
+            if (typeof color !== "string") {
+                throw new Error("Value is not a string!")
+            }
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+                this.expandHexColor(color)
+            );
+            var rgb = [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16)
+            ];
+            return result ? new RGB(rgb[0], rgb[1], rgb[2]) : null;
+        },
+
+        rgb2hex: function(color){
+            this.check(color, "rgb");
+            return (
+                "#" +
+                ((1 << 24) + (color.r << 16) + (color.g << 8) + color.b).toString(16).slice(1)
+            );
+        },
+
+        rgb2hsv: function(color){
+            this.check(color, "rgb");
+            var hsv = new HSV();
+            var h, s, v;
+            var r = color.r / 255,
+                g = color.g / 255,
+                b = color.b / 255;
+
+            var max = Math.max(r, g, b);
+            var min = Math.min(r, g, b);
+            var delta = max - min;
+
+            v = max;
+
+            if (max === 0) {
+                s = 0;
+            } else {
+                s = 1 - min / max;
+            }
+
+            if (max === min) {
+                h = 0;
+            } else if (max === r && g >= b) {
+                h = 60 * ((g - b) / delta);
+            } else if (max === r && g < b) {
+                h = 60 * ((g - b) / delta) + 360;
+            } else if (max === g) {
+                h = 60 * ((b - r) / delta) + 120;
+            } else if (max === b) {
+                h = 60 * ((r - g) / delta) + 240;
+            } else {
+                h = 0;
+            }
+
+            hsv.h = h;
+            hsv.s = s;
+            hsv.v = v;
+
+            return hsv;
+        },
+
+        hsv2rgb: function(color){
+            this.check(color, "hsv");
+            var r, g, b;
+            var h = color.h,
+                s = color.s * 100,
+                v = color.v * 100;
+            var Hi = Math.floor(h / 60);
+            var Vmin = ((100 - s) * v) / 100;
+            var alpha = (v - Vmin) * ((h % 60) / 60);
+            var Vinc = Vmin + alpha;
+            var Vdec = v - alpha;
+
+            switch (Hi) {
+                case 0:
+                    r = v;
+                    g = Vinc;
+                    b = Vmin;
+                    break;
+                case 1:
+                    r = Vdec;
+                    g = v;
+                    b = Vmin;
+                    break;
+                case 2:
+                    r = Vmin;
+                    g = v;
+                    b = Vinc;
+                    break;
+                case 3:
+                    r = Vmin;
+                    g = Vdec;
+                    b = v;
+                    break;
+                case 4:
+                    r = Vinc;
+                    g = Vmin;
+                    b = v;
+                    break;
+                case 5:
+                    r = v;
+                    g = Vmin;
+                    b = Vdec;
+                    break;
+            }
+
+            return new RGB(
+                Math.round((r * 255) / 100),
+                Math.round((g * 255) / 100),
+                Math.round((b * 255) / 100)
+            );
+        },
+
+        hsv2hex: function(color){
+            this.check(color, "hsv");
+            return this.rgb2hex(this.hsv2rgb(color));
+        },
+
+        hex2hsv: function(color){
+            this.check(color, "hex");
+            return this.rgb2hsv(this.hex2rgb(color));
+        },
+
+        rgb2cmyk: function(color){
+            this.check(color, "rgb");
+            var cmyk = new CMYK();
+
+            var r = color.r / 255;
+            var g = color.g / 255;
+            var b = color.b / 255;
+
+            cmyk.k = Math.min(1 - r, 1 - g, 1 - b);
+
+            cmyk.c = 1 - cmyk.k === 0 ? 0 : (1 - r - cmyk.k) / (1 - cmyk.k);
+            cmyk.m = 1 - cmyk.k === 0 ? 0 : (1 - g - cmyk.k) / (1 - cmyk.k);
+            cmyk.y = 1 - cmyk.k === 0 ? 0 : (1 - b - cmyk.k) / (1 - cmyk.k);
+
+            cmyk.c = Math.round(cmyk.c * 100);
+            cmyk.m = Math.round(cmyk.m * 100);
+            cmyk.y = Math.round(cmyk.y * 100);
+            cmyk.k = Math.round(cmyk.k * 100);
+
+            return cmyk;
+        },
+
+        cmyk2rgb: function(color){
+            this.check(color, "cmyk");
+            var r = Math.floor(255 * (1 - color.c / 100) * (1 - color.k / 100));
+            var g = Math.ceil(255 * (1 - color.m / 100) * (1 - color.k / 100));
+            var b = Math.ceil(255 * (1 - color.y / 100) * (1 - color.k / 100));
+
+            return new RGB(r, g, b);
+        },
+
+        hsv2hsl: function(color){
+            this.check(color, "hsv");
+            var h, s, l, d;
+            h = color.h;
+            l = (2 - color.s) * color.v;
+            s = color.s * color.v;
+            if (l === 0) {
+                s = 0;
+            } else {
+                d = l <= 1 ? l : 2 - l;
+                if (d === 0) {
+                    s = 0;
+                } else {
+                    s /= d;
+                }
+            }
+            l /= 2;
+            return new HSL(h, s, l);
+        },
+
+        hsl2hsv: function(color){
+            this.check(color, ["hsl", "hsla"]);
+            var h, s, v, l;
+            h = color.h;
+            l = color.l * 2;
+            s = color.s * (l <= 1 ? l : 2 - l);
+
+            v = (l + s) / 2;
+
+            if (l + s === 0) {
+                s = 0;
+            } else {
+                s = (2 * s) / (l + s);
+            }
+
+            return new HSV(h, s, v);
+        },
+
+        rgb2websafe: function(color){
+            this.check(color, "rgb");
+            return new RGB(
+                Math.round(color.r / 51) * 51,
+                Math.round(color.g / 51) * 51,
+                Math.round(color.b / 51) * 51
+            );
+        },
+
+        rgba2websafe: function(color){
+            this.check(color, "rgba");
+            var rgbWebSafe = this.rgb2websafe(color);
+            return new RGBA(rgbWebSafe.r, rgbWebSafe.g, rgbWebSafe.b, color.a);
+        },
+
+        hex2websafe: function(color){
+            this.check(color, "hex");
+            return this.rgb2hex(this.rgb2websafe(this.hex2rgb(color)));
+        },
+
+        hsv2websafe: function(color){
+            this.check(color, "hsv");
+            return this.rgb2hsv(this.rgb2websafe(this.toRGB(color)));
+        },
+
+        hsl2websafe: function(color){
+           this.check(color, "hsl");
+            return this.hsv2hsl(this.rgb2hsv(this.rgb2websafe(this.toRGB(color))));
+        },
+
+        cmyk2websafe: function(color){
+            this.check(color, "cmyk");
+            return this.rgb2cmyk(this.rgb2websafe(this.cmyk2rgb(color)));
+        },
+
+        websafe: function(color){
+            if (this.isHEX(color)) return this.hex2websafe(color);
+            if (this.isRGB(color)) return this.rgb2websafe(color);
+            if (this.isRGBA(color)) return this.rgba2websafe(color);
+            if (this.isHSV(color)) return this.hsv2websafe(color);
+            if (this.isHSL(color)) return this.hsl2websafe(color);
+            if (this.isCMYK(color)) return this.cmyk2websafe(color);
+
+            return color;
+        },
+
+        toColor: function(color, type, alpha){
+            var result;
+            switch (type.toLowerCase()) {
+                case "hex":
+                    result = this.toHEX(color);
+                    break;
+                case "rgb":
+                    result = this.toRGB(color);
+                    break;
+                case "rgba":
+                    result = this.toRGBA(color, alpha);
+                    break;
+                case "hsl":
+                    result = this.toHSL(color);
+                    break;
+                case "hsla":
+                    result = this.toHSLA(color, alpha);
+                    break;
+                case "hsv":
+                    result = this.toHSV(color);
+                    break;
+                case "cmyk":
+                    result = this.toCMYK(color);
+                    break;
+                default:
+                    result = color;
+            }
+            return result;
+        },
+
+        toHEX: function(val){
+            var color = typeof val === "string" ? this.parse(val) : val;
+
+            if (!color) {
+                throw new Error("Unknown color format!");
+            }
+
+            return typeof color === "string"
+                ? color
+                : this.rgb2hex(this.toRGB(color));
+        },
+
+        toRGB: function(val){
+            var color = typeof val === "string" ? this.parse(val) : val;
+
+            if (this.isRGB(color)) return color;
+            if (this.isRGBA(color)) return new RGB(color.r, color.g, color.b);
+            if (this.isHSV(color)) return this.hsv2rgb(color);
+            if (this.isHSL(color)) return this.hsv2rgb(this.hsl2hsv(color));
+            if (this.isHSLA(color)) return this.hsv2rgb(this.hsl2hsv(color));
+            if (this.isHEX(color)) return this.hex2rgb(color);
+            if (this.isCMYK(color)) return this.cmyk2rgb(color);
+
+            throw new Error("Unknown color format!");
+        },
+
+        toRGBA: function(color, alpha){
+            if (this.isRGBA(color)) {
+                if (alpha) {
+                    color.a = alpha;
+                }
+                return color;
+            }
+            var rgb = this.toRGB(color);
+            return new RGBA(rgb.r, rgb.g, rgb.b, alpha);
+        },
+
+        toHSV: function(color){
+            return this.rgb2hsv(this.toRGB(color));
+        },
+
+        toHSL: function(color){
+            return this.hsv2hsl(this.rgb2hsv(this.toRGB(color)));
+        },
+
+        toHSLA: function(color, alpha){
+            if (this.isHSLA(color)) {
+                if (alpha) {
+                    color.a = alpha;
+                }
+                return color;
+            }
+            var hsla = this.hsv2hsl(this.rgb2hsv(this.toRGB(color)));
+            hsla.a = alpha;
+            return new HSLA(hsla.h, hsla.s, hsla.l, hsla.a);
+        },
+
+        toCMYK: function(color){
+            return this.rgb2cmyk(this.toRGB(color));
+        },
+
+        grayscale: function(color){
+            return this.desaturate(color, 100);
+        },
+
+        lighten: function(color, amount){
+            var hsl, type, alpha;
+
+            if (!this.isColor(color)) {
+                throw new Error(color + " is not a valid color value!");
+            }
+
+            amount = (amount === 0) ? 0 : (amount || 10);
+            hsl = this.toHSL(color);
+            hsl.l += amount / 100;
+            hsl.l = clamp(hsl.l);
+
+            type = this.colorType(color).toLowerCase();
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                alpha = color.a;
+            }
+
+            return this.toColor(hsl, type, alpha);
+        },
+
+        darken: function(color, amount){
+            return this.lighten(color, -amount);
+        },
+
+        spin: function(color, amount){
+            var hsl, type, alpha, hue;
+
+            if (!this.isColor(color)) {
+                throw new Error(color + " is not a valid color value!");
+            }
+
+            hsl = this.toHSL(color);
+            hue = (hsl.h + amount) % 360;
+            hsl.h = hue < 0 ? 360 + hue : hue;
+
+            type = this.colorType(color).toLowerCase();
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                alpha = color.a;
+            }
+
+            return this.toColor(hsl, type, alpha);
+        },
+
+        brighten: function(color, amount){
+            var rgb, type, alpha;
+
+            if (!this.isColor(color)) {
+                throw new Error(color + " is not a valid color value!");
+            }
+
+            rgb = this.toRGB(color);
+            rgb.r = Math.max(0, Math.min(255, rgb.r - Math.round(255 * - (amount / 100))));
+            rgb.g = Math.max(0, Math.min(255, rgb.g - Math.round(255 * - (amount / 100))));
+            rgb.b = Math.max(0, Math.min(255, rgb.b - Math.round(255 * - (amount / 100))));
+
+            type = this.colorType(color).toLowerCase();
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                alpha = color.a;
+            }
+
+            return this.toColor(rgb, type, alpha);
+        },
+
+        saturate: function(color, amount){
+            var hsl, type, alpha;
+
+            if (!this.isColor(color)) {
+                throw new Error(color + " is not a valid color value!");
+            }
+
+            hsl = this.toHSL(color);
+            hsl.s += amount / 100;
+            hsl.s = clamp(hsl.s);
+
+            type = this.colorType(color).toLowerCase();
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                alpha = color.a;
+            }
+
+            return this.toColor(hsl, type, alpha);
+        },
+
+        desaturate: function(color, amount){
+            var hsl, type, alpha;
+
+            if (!this.isColor(color)) {
+                throw new Error(color + " is not a valid color value!");
+            }
+
+            hsl = this.toHSL(color);
+            hsl.s -= amount / 100;
+            hsl.s = clamp(hsl.s);
+
+            type = this.colorType(color).toLowerCase();
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                alpha = color.a;
+            }
+
+            return this.toColor(hsl, type, alpha);
+        },
+
+        hueShift: function(color, hue, saturation, value){
+            var hsv = this.toHSV(color);
+            var type = this.colorType(color).toLowerCase();
+            var h = hsv.h;
+            var alpha;
+            var _h = hue || 0;
+            var _s = saturation || 0;
+            var _v = value || 0;
+
+            h += _h;
+            while (h >= 360.0) h -= 360.0;
+            while (h < 0.0) h += 360.0;
+            hsv.h = h;
+
+            hsv.s += _s;
+            if (hsv.s > 1) {hsv.s = 1;}
+            if (hsv.s < 0) {hsv.s = 0;}
+
+            hsv.v += _v;
+            if (hsv.v > 1) {hsv.v = 1;}
+            if (hsv.v < 0) {hsv.v = 0;}
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                alpha = color.a;
+            }
+
+            return this.toColor(hsv, type, alpha);
+        },
+
+        shade: function(color, amount){
+            if (!this.isColor(color)) {
+                throw new Error(color + " is not a valid color value!");
+            }
+
+            amount /= 100;
+
+            var type = this.colorType(color).toLowerCase();
+            var rgb = this.toRGB(color);
+            var t = amount < 0 ? 0 : 255;
+            var p = amount < 0 ? amount * -1 : amount;
+            var r, g, b, a;
+
+            r = (Math.round((t - rgb.r) * p) + rgb.r);
+            g = (Math.round((t - rgb.g) * p) + rgb.g);
+            b = (Math.round((t - rgb.b) * p) + rgb.b);
+
+            if (type === Types.RGBA || type === Types.HSLA) {
+                a = color.a;
+            }
+
+            return this.toColor(new RGB(r, g, b), type, a);
+        },
+
+        mix: function(color1, color2, amount){
+
+            amount = (amount === 0) ? 0 : (amount || 50);
+
+            var rgb = new RGB(0,0,0);
+            var rgb1 = this.toRGB(color1);
+            var rgb2 = this.toRGB(color2);
+
+            var p = amount / 100;
+
+            rgb.r = Math.round(((rgb2.r - rgb1.r) * p) + rgb1.r);
+            rgb.g = Math.round(((rgb2.g - rgb1.g) * p) + rgb1.g);
+            rgb.b = Math.round(((rgb2.b - rgb1.b) * p) + rgb1.b);
+
+            return this.toHEX(rgb);
+        },
+
+        multiply: function(color1, color2){
+            var rgb1 = this.toRGB(color1);
+            var rgb2 = this.toRGB(color2);
+            var rgb = new RGB();
+
+            rgb1.b = Math.floor(rgb1.b * rgb2.b / 255);
+            rgb1.g = Math.floor(rgb1.g * rgb2.g / 255);
+            rgb1.r = Math.floor(rgb1.r * rgb2.r / 255);
+
+            return this.toHEX(rgb);
+        },
+
+        materialPalette: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var baseLight = opt.baseLight;
+            var baseDark = opt.baseDark === "self" || !opt.baseDark ? this.multiply(color, color) : opt.baseDark;
+
+            return {
+                "50": this.mix(baseLight, color, 10),
+                "100": this.mix(baseLight, color, 30),
+                "200": this.mix(baseLight, color, 50),
+                "300": this.mix(baseLight, color, 70),
+                "400": this.mix(baseLight, color, 85),
+                "500": this.mix(baseLight, color, 100),
+                "600": this.mix(baseDark, color, 92),
+                "700": this.mix(baseDark, color, 83),
+                "800": this.mix(baseDark, color, 74),
+                "900": this.mix(baseDark, color, 65),
+
+                "A100": this.lighten(this.saturate(this.mix(baseDark, color, 15), 80), 65),
+                "A200": this.lighten(this.saturate(this.mix(baseDark, color, 15), 80), 55),
+                "A400": this.lighten(this.saturate(this.mix(baseLight, color, 100), 55), 10),
+                "A700": this.lighten(this.saturate(this.mix(baseDark, color, 83), 65), 10)
+            };
+        },
+
+        monochromatic: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var returnAs = opt.resultType;
+            var results = opt.results;
+            var hsv = this.toHSV(color);
+            var h = hsv.h,
+                s = hsv.s,
+                v = hsv.v;
+            var result = [];
+            var mod = 1 / results;
+            var self = this;
+
+            while (results--) {
+                result.push(new HSV(h, s, v));
+                v = (v + mod) % 1;
+            }
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        complementary: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var hsl = this.toHSL(color);
+            var result;
+            var self = this;
+
+            var returnAs = opt.resultType;
+
+            result = [
+                hsl,
+                new HSL(shift(hsl.h, 180), hsl.s, hsl.l)
+            ];
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        splitComplementary: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var hsl = this.toHSL(color);
+            var h = hsl.h;
+            var result, self = this;
+
+            var returnAs = opt.resultType;
+            var angle = opt.angle;
+
+            result = [
+                hsl,
+                new HSL(shift(h, 180 - angle), hsl.s, hsl.l ),
+                new HSL(shift(h, 180 + angle), hsl.s, hsl.l )
+            ];
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        doubleComplementary: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var returnAs = opt.resultType;
+            var angle = opt.angle;
+            var hsl = this.toHSL(color);
+            var h = hsl.h;
+            var result, self = this;
+
+            result = [
+                hsl,
+                new HSL(shift(h, 180), hsl.s, hsl.l ),
+                new HSL(shift(h, angle), hsl.s, hsl.l ),
+                new HSL(shift(h, 180 + angle), hsl.s, hsl.l )
+            ];
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        square: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var returnAs = opt.resultType;
+            var result = [], i;
+            var hsl = this.toHSL(color);
+            var h = hsl.h , self = this;
+
+            result.push(hsl);
+
+            for (i = 1; i < 4; i++) {
+                h = shift(h, 90.0);
+                result.push(new HSL(h, hsl.s, hsl.l));
+            }
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        tetradic: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var returnAs = opt.resultType;
+            var angle = opt.angle;
+            var result;
+            var hsl = this.toHSL(color);
+            var h = hsl.h;
+            var self = this;
+
+            result = [
+                hsl,
+                new HSL(shift(h, 180), hsl.s, hsl.l),
+                new HSL(shift(h, 180 - angle), hsl.s, hsl.l),
+                new HSL(shift(h, -angle), hsl.s, hsl.l)
+            ];
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        triadic: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var returnAs = opt.resultType;
+            var result;
+            var hsl = this.toHSL(color);
+            var h = hsl.h;
+            var self = this;
+
+            result = [
+                hsl,
+                new HSL(shift(h,120), hsl.s, hsl.l),
+                new HSL(shift(h,240), hsl.s, hsl.l)
+            ];
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        analogous: function(color, options){
+            var opt = $.extend({}, ColorsDefaultConfig, options);
+            var returnAs = opt.resultType;
+            var angle = opt.angle;
+
+            var hsl = this.toHSL(color);
+            var result, self = this;
+
+            result = [
+                hsl,
+                new HSL(shift(hsl.h, -angle), hsl.s, hsl.l),
+                new HSL(shift(hsl.h, +angle), hsl.s, hsl.l)
+            ];
+
+            return result.map(function(el){
+                return self["to"+returnAs.toUpperCase()](el);
+            });
+        },
+
+        createScheme: function(color, name, options){
+            switch (name.toLowerCase()) {
+                case "analogous":
+                case "analog": return this.analogous(color, options);
+
+                case "triadic":
+                case "triad": return this.triadic(color, options);
+
+                case "tetradic":
+                case "tetra": return this.tetradic(color, options);
+
+                case "monochromatic":
+                case "mono": return this.monochromatic(color, options);
+
+                case "complementary":
+                case "complement":
+                case "comp": return this.complementary(color, options);
+
+                case "double-complementary":
+                case "double-complement":
+                case "double": return this.doubleComplementary(color, options);
+
+                case "split-complementary":
+                case "split-complement":
+                case "split": return this.splitComplementary(color, options);
+
+                case "square": return this.square(color, options);
+                case "material": return this.materialPalette(color, options);
+            }
+        },
+
+        getScheme: function(){
+            return this.createScheme.apply(this, arguments)
+        },
+
+        add: function(val1, val2, returnAs){
+            var color1 = typeof val1 === "string" ? this.parse(val1) : val1;
+            var color2 = typeof val2 === "string" ? this.parse(val2) : val2;
+            var c1 = this.toRGBA(color1);
+            var c2 = this.toRGBA(color2);
+            var result = new RGBA();
+            var to = (""+returnAs).toLowerCase() || "hex";
+
+            result.r = Math.round((c1.r + c2.r) / 2);
+            result.g = Math.round((c1.g + c2.g) / 2);
+            result.b = Math.round((c1.b + c2.b) / 2);
+            result.a = Math.round((c1.a + c2.a) / 2);
+
+            return this["to"+to.toUpperCase()](result);
+        }
+    };
+
+    var Color = function(color, options){
+        this._setValue(color);
+        this._setOptions(options);
+    }
+
+    Color.prototype = {
+        _setValue: function(color){
+            var _color;
+
+            if (typeof color === "string") {
+                _color = Colors.parse(color);
+            } else {
+                _color = color;
+            }
+
+            if (!Colors.isColor(_color)) {
+                _color = "#000000";
+            }
+
+            this._value = _color;
+            this._type = Colors.colorType(this._value);
+        },
+
+        _setOptions: function(options){
+            options = typeof options === "object" ? options : {};
+            this._options = $.extend({}, ColorsDefaultConfig, options);
+        },
+
+        getOptions: function(){
+            return this._options;
+        },
+
+        setOptions: function(options){
+            this._setOptions(options);
+        },
+
+        setValue: function(color){
+            this._setValue(color);
+        },
+
+        getValue: function(){
+            return this._value;
+        },
+
+        channel: function(ch, val){
+            var currentType = this._type.toUpperCase();
+
+            if (["red", "green", "blue"].indexOf(ch) > -1) {
+                this.toRGB();
+                this._value[ch[0]] = val;
+                this["to"+currentType]();
+            }
+            if (ch === "alpha" && this._value.a) {
+                this._value.a = val;
+            }
+            if (["hue", "saturation", "value"].indexOf(ch) > -1) {
+                this.toHSV();
+                this._value[ch[0]] = val;
+                this["to"+currentType]();
+            }
+            if (["lightness"].indexOf(ch) > -1) {
+                this.toHSL();
+                this._value[ch[0]] = val;
+                this["to"+currentType]();
+            }
+            if (["cyan", "magenta", "yellow", "black"].indexOf(ch) > -1) {
+                this.toCMYK();
+                this._value[ch[0]] = val;
+                this["to"+currentType]();
+            }
+
+            return this;
+        },
+
+        channels: function(obj){
+            var that = this;
+
+            $.each(obj, function(key, val){
+                that.channel(key, val);
+            });
+
+            return this;
+        },
+
+        toRGB: function() {
+            this._value = Colors.toRGB(this._value);
+            this._type = Types.RGB;
+            return this;
+        },
+
+        rgb: function(){
+            return this._value ? new Color(Colors.toRGB(this._value)) : undefined;
+        },
+
+        toRGBA: function(alpha) {
+            if (Colors.isRGBA(this._value)) {
+                if (alpha) {
+                    this._value = Colors.toRGBA(this._value, alpha);
+                }
+            } else {
+                this._value = Colors.toRGBA(this._value, alpha);
+            }
+            this._type = Types.RGBA;
+            return this;
+        },
+
+        rgba: function(alpha) {
+            return this._value ? new Color(Colors.toRGBA(this._value, alpha)) : undefined;
+        },
+
+        toHEX: function() {
+            this._value = Colors.toHEX(this._value);
+            this._type = Types.HEX;
+            return this;
+        },
+
+        hex: function() {
+            return this._value ? new Color(Colors.toHEX(this._value)) : undefined;
+        },
+
+        toHSV: function() {
+            this._value = Colors.toHSV(this._value);
+            this._type = Types.HSV;
+            return this;
+        },
+
+        hsv: function() {
+            return this._value ? new Color(Colors.toHSV(this._value)) : undefined;
+        },
+
+        toHSL: function() {
+            this._value = Colors.toHSL(this._value);
+            this._type = Types.HSL;
+            return this;
+        },
+
+        hsl: function() {
+            return this._value ? new Color(Colors.toHSL(this._value)) : undefined;
+        },
+
+        toHSLA: function(alpha) {
+            if (Colors.isHSLA(this._value)) {
+                if (alpha) {
+                    this._value = Colors.toHSLA(this._value, alpha);
+                }
+            } else {
+                this._value = Colors.toHSLA(this._value, alpha);
+            }
+            this._type = Types.HSLA;
+            return this;
+        },
+
+        hsla: function(alpha) {
+            return this._value ? new Color(Colors.toHSLA(this._value, alpha)) : undefined;
+        },
+
+        toCMYK: function() {
+            this._value = Colors.toCMYK(this._value);
+            this._type = Types.CMYK;
+            return this;
+        },
+
+        cmyk: function() {
+            return this._value ? new Color(Colors.toCMYK(this._value)) : undefined;
+        },
+
+        toWebsafe: function() {
+            this._value = Colors.websafe(this._value);
+            this._type = Colors.colorType(this._value);
+            return this;
+        },
+
+        websafe: function() {
+            return this._value ? new Color(Colors.websafe(this._value)) : undefined;
+        },
+
+        toString: function() {
+            return this._value ? Colors.colorToString(this._value) : "undefined";
+        },
+
+        toDarken: function(amount) {
+            this._value = Colors.darken(this._value, amount);
+            return this;
+        },
+
+        darken: function(amount){
+            return new Color(Colors.darken(this._value, amount));
+        },
+
+        toLighten: function(amount) {
+            this._value = Colors.lighten(this._value, amount);
+            return this;
+        },
+
+        lighten: function(amount){
+            return new Color(Colors.lighten(this._value, amount))
+        },
+
+        isDark: function() {
+            return this._value ? Colors.isDark(this._value) : undefined;
+        },
+
+        isLight: function() {
+            return this._value ? Colors.isLight(this._value) : undefined;
+        },
+
+        toHueShift: function(hue, saturation, value) {
+            this._value = Colors.hueShift(this._value, hue, saturation, value);
+            return this;
+        },
+
+        hueShift: function (hue, saturation, value) {
+            return new Color(Colors.hueShift(this._value, hue, saturation, value));
+        },
+
+        toGrayscale: function() {
+            this._value = Colors.grayscale(this._value, this._type);
+            return this;
+        },
+
+        grayscale: function(){
+            return new Color(Colors.grayscale(this._value, this._type));
+        },
+
+        type: function() {
+            return Colors.colorType(this._value);
+        },
+
+        createScheme: function(name, format, options) {
+            return this._value
+                ? Colors.createScheme(this._value, name, format, options)
+                : undefined;
+        },
+
+        getScheme: function(){
+            return this.createScheme.apply(this, arguments);
+        },
+
+        equal: function(color) {
+            return Colors.equal(this._value, color);
+        },
+
+        toAdd: function(color){
+            this._value = Colors.add(this._value, color, this._type);
+            return this;
+        },
+
+        add: function(color){
+            return new Color(Colors.add(this._value, color, this._type));
+        }
+    }
+
+    Metro.colors = Colors.init();
+    window.Color = Metro.Color = Color;
+    window.ColorPrimitive = Metro.colorPrimitive = {
+        RGB: RGB,
+        RGBA: RGBA,
+        HSV: HSV,
+        HSL: HSL,
+        HSLA: HSLA,
+        CMYK: CMYK
+    };
+
+    if (window.METRO_GLOBAL_COMMON === true) {
+        window.Colors = Metro.colors;
+    }
+
 }(Metro, m4q));
 
 (function(Metro, $) {
@@ -13556,12 +15359,12 @@ $.noConflict = function() {
         },
 
         blink: function(){
-            var element = this.element, o = this.options;
+            var element = this.element;
             element.toggleClass("blink");
-            Utils.exec(o.onBlink, [this.current], element[0]);
-            element.fire("blink", {
+
+            this._fireEvent("blink", {
                 time: this.current
-            })
+            });
         },
 
         tick: function(){
@@ -13579,14 +15382,16 @@ $.noConflict = function() {
             if (left <= -1) {
                 this.stop();
                 element.addClass(o.clsAlarm);
-                Utils.exec(o.onAlarm, [now], element[0]);
-                element.fire("alarm", {
+
+                this._fireEvent("alarm", {
                     time: now
                 });
+
                 return ;
             }
 
             d = Math.floor(left / dm);
+
             left -= d * dm;
             if (this.current.d !== d) {
                 this.current.d = d;
@@ -13597,9 +15402,10 @@ $.noConflict = function() {
                 if (this.zeroDaysFired === false) {
                     this.zeroDaysFired = true;
                     days.addClass(o.clsZero);
-                    Utils.exec(o.onZero, ["days", days], element[0]);
-                    element.fire("zero", {
-                        parts: ["days", days]
+
+                    this._fireEvent("zero", {
+                        part: "days",
+                        value: days
                     });
                 }
             }
@@ -13615,9 +15421,10 @@ $.noConflict = function() {
                 if (this.zeroHoursFired === false) {
                     this.zeroHoursFired = true;
                     hours.addClass(o.clsZero);
-                    Utils.exec(o.onZero, ["hours", hours], element[0]);
-                    element.fire("zero", {
-                        parts: ["hours", hours]
+
+                    this._fireEvent("zero", {
+                        part: "hours",
+                        value: hours
                     });
                 }
             }
@@ -13633,9 +15440,10 @@ $.noConflict = function() {
                 if (this.zeroMinutesFired === false) {
                     this.zeroMinutesFired = true;
                     minutes.addClass(o.clsZero);
-                    Utils.exec(o.onZero, ["minutes", minutes], element[0]);
-                    element.fire("zero", {
-                        parts: ["minutes", minutes]
+
+                    this._fireEvent("zero", {
+                        part: "minutes",
+                        value: minutes
                     });
 
                 }
@@ -13651,17 +15459,20 @@ $.noConflict = function() {
                 if (this.zeroSecondsFired === false) {
                     this.zeroSecondsFired = true;
                     seconds.addClass(o.clsZero);
-                    Utils.exec(o.onZero, ["seconds", seconds], element[0]);
-                    element.fire("zero", {
-                        parts: ["seconds", seconds]
+
+                    this._fireEvent("zero", {
+                        part: "seconds",
+                        value: seconds
                     });
 
                 }
             }
 
-            Utils.exec(o.onTick, [{days:d, hours:h, minutes:m, seconds:s}], element[0]);
-            element.fire("tick", {
-                days:d, hours:h, minutes:m, seconds:s
+            this._fireEvent("tick", {
+                days: d,
+                hours: h,
+                minutes: m,
+                seconds: s
             });
         },
 
@@ -13670,7 +15481,7 @@ $.noConflict = function() {
             var digits, digits_length, digit_value, digit_current, digit;
             var len, i, duration = 900;
 
-            var slideDigit = function(digit){
+            var slideDigit = function(digit, value){
                 var digit_copy, height = digit.height();
 
                 digit.siblings("-old-digit").remove();
@@ -13694,7 +15505,7 @@ $.noConflict = function() {
                     });
 
                 digit_copy
-                    .html(digit_value)
+                    .html(value)
                     .animate({
                         draw: {
                             top: 0,
@@ -13705,7 +15516,7 @@ $.noConflict = function() {
                     });
             };
 
-            var fadeDigit = function(digit){
+            var fadeDigit = function(digit, value){
                 var digit_copy;
                 digit.siblings("-old-digit").remove();
                 digit_copy = digit.clone().appendTo(digit.parent());
@@ -13727,7 +15538,7 @@ $.noConflict = function() {
                     });
 
                 digit_copy
-                    .html(digit_value)
+                    .html(value)
                     .animate({
                         draw: {
                             opacity: 1
@@ -13737,7 +15548,7 @@ $.noConflict = function() {
                     });
             };
 
-            var zoomDigit = function(digit){
+            var zoomDigit = function(digit, value) {
                 var digit_copy, height = digit.height(), fs = parseInt(digit.style("font-size"));
 
                 digit.siblings("-old-digit").remove();
@@ -13764,7 +15575,7 @@ $.noConflict = function() {
                     });
 
                 digit_copy
-                    .html(digit_value)
+                    .html(value)
                     .animate({
                         draw: {
                             top: 0,
@@ -13792,18 +15603,18 @@ $.noConflict = function() {
                 digit_value = Math.floor( parseInt(value) / Math.pow(10, i) ) % 10;
                 digit_current = parseInt(digit.text());
 
+                digits_length--;
+
                 if (digit_current === digit_value) {
                     continue;
                 }
 
                 switch ((""+o.animate).toLowerCase()) {
-                    case "slide": slideDigit(digit); break;
-                    case "fade": fadeDigit(digit); break;
-                    case "zoom": zoomDigit(digit); break;
+                    case "slide": slideDigit(digit, digit_value); break;
+                    case "fade": fadeDigit(digit, digit_value); break;
+                    case "zoom": zoomDigit(digit, digit_value); break;
                     default: digit.html(digit_value);
                 }
-
-                digits_length--;
             }
         },
 
@@ -14252,7 +16063,7 @@ $.noConflict = function() {
 
             var cells  = element.find(".cube-cell");
             if (o.color !== null) {
-                if (Utils.isColor(o.color)) {
+                if (Metro.colors.isColor(o.color)) {
                     cells.css({
                         backgroundColor: o.color,
                         borderColor: o.color
@@ -14330,8 +16141,8 @@ $.noConflict = function() {
                 return ;
             }
 
-            rule1 = "0 0 10px " + Utils.hexColorToRgbA(o.flashColor, 1);
-            rule2 = "0 0 10px " + Utils.hexColorToRgbA(o.flashColor, o.attenuation);
+            rule1 = "0 0 10px " + Metro.colors.toRGBA(o.flashColor, 1);
+            rule2 = "0 0 10px " + Metro.colors.toRGBA(o.flashColor, o.attenuation);
 
             for(i = 0; i < 3; i++) {
                 rules1.push(rule1);
@@ -14386,16 +16197,17 @@ $.noConflict = function() {
         },
 
         _tick: function(index, speed){
-            var that = this, element = this.element, o = this.options;
+            var that = this, o = this.options;
             if (speed === undefined) {
                 speed = o.flashInterval * index;
             }
 
             var interval = setTimeout(function(){
-                Utils.exec(o.onTick, [index], element[0]);
-                element.fire("tick", {
+
+                that._fireEvent("tick", {
                     index: index
                 });
+
                 clearInterval(interval);
                 Utils.arrayDelete(that.intervals, interval);
             }, speed);
@@ -14545,6 +16357,7 @@ $.noConflict = function() {
     'use strict';
     var Utils = Metro.utils;
     var DatePickerDefaultConfig = {
+        label: "",
         datepickerDeferred: 0,
         gmt: 0,
         format: "%Y-%m-%d",
@@ -14564,6 +16377,10 @@ $.noConflict = function() {
         clsMonth: "",
         clsDay: "",
         clsYear: "",
+        clsLabel: "",
+        clsButton: "",
+        clsOkButton: "",
+        clsCancelButton: "",
         okButtonIcon: "<span class='default-icon-check'></span>",
         cancelButtonIcon: "<span class='default-icon-cross'></span>",
         onSet: Metro.noop,
@@ -14648,20 +16465,22 @@ $.noConflict = function() {
             var picker, month, day, year, i, j;
             var dateWrapper, selectWrapper, selectBlock, actionBlock;
 
-            var prev = element.prev();
-            var parent = element.parent();
             var id = Utils.elementId("datepicker");
 
             picker = $("<div>").attr("id", id).addClass("wheel-picker date-picker " + element[0].className).addClass(o.clsPicker);
 
-            if (prev.length === 0) {
-                parent.prepend(picker);
-            } else {
-                picker.insertAfter(prev);
-            }
-
+            picker.insertBefore(element);
             element.appendTo(picker);
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(picker);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
 
             dateWrapper = $("<div>").addClass("date-wrapper").appendTo(picker);
 
@@ -14709,8 +16528,8 @@ $.noConflict = function() {
             selectBlock.height((o.distance * 2 + 1) * 40);
 
             actionBlock = $("<div>").addClass("action-block").appendTo(selectWrapper);
-            $("<button>").attr("type", "button").addClass("button action-ok").html(o.okButtonIcon).appendTo(actionBlock);
-            $("<button>").attr("type", "button").addClass("button action-cancel").html(o.cancelButtonIcon).appendTo(actionBlock);
+            $("<button>").attr("type", "button").addClass("button action-ok").addClass(o.clsButton).addClass(o.clsOkButton).html(o.okButtonIcon).appendTo(actionBlock);
+            $("<button>").attr("type", "button").addClass("button action-cancel").addClass(o.clsButton).addClass(o.clsCancelButton).html(o.cancelButtonIcon).appendTo(actionBlock);
 
 
             element[0].className = '';
@@ -14718,6 +16537,10 @@ $.noConflict = function() {
                 for (i = 0; i < element[0].style.length; i++) {
                     picker.css(element[0].style[i], element.css(element[0].style[i]));
                 }
+            }
+
+            if (element.prop("disabled")) {
+                picker.addClass("disabled");
             }
 
             this.picker = picker;
@@ -14838,14 +16661,15 @@ $.noConflict = function() {
 
             element.val(this.value.format(o.format, o.locale)).trigger("change");
 
-            Utils.exec(o.onSet, [this.value, element.val(), element, picker], element[0]);
-            element.fire("set", {
-                value: this.value
-            });
+            this._fireEvent("set", {
+                value: this.value,
+                elementValue: element.val(),
+                picker: picker
+            })
         },
 
         open: function(){
-            var element = this.element, o = this.options;
+            var o = this.options;
             var picker = this.picker;
             var m = this.value.getMonth(), d = this.value.getDate() - 1, y = this.value.getFullYear();
             var m_list, d_list, y_list;
@@ -14903,19 +16727,21 @@ $.noConflict = function() {
 
             this.isOpen = true;
 
-            Utils.exec(o.onOpen, [this.value, element, picker], element[0]);
-            element.fire("open", {
-                value: this.value
-            });
+            this._fireEvent("open", {
+                value: this.value,
+                picker: picker
+            })
+
         },
 
         close: function(){
-            var picker = this.picker, o = this.options, element = this.element;
+            var picker = this.picker;
             picker.find(".select-wrapper").hide(0);
             this.isOpen = false;
-            Utils.exec(o.onClose, [this.value, element, picker], element[0]);
-            element.fire("close", {
-                value: this.value
+
+            this._fireEvent("close", {
+                value: this.value,
+                picker: picker
             });
         },
 
@@ -14968,27 +16794,34 @@ $.noConflict = function() {
             this._set();
         },
 
-        changeAttribute: function(attributeName){
-            var that = this;
 
-            function changeValue() {
-                that.val(that.element.attr("data-value"));
+        disable: function(){
+            this.element.data("disabled", true);
+            this.element.parent().addClass("disabled");
+        },
+
+        enable: function(){
+            this.element.data("disabled", false);
+            this.element.parent().removeClass("disabled");
+        },
+
+        toggleState: function(){
+            if (this.elem.disabled) {
+                this.disable();
+            } else {
+                this.enable();
             }
+        },
 
-            function changeLocale() {
-                that.i18n(that.element.attr("data-locale"));
-            }
-
-            function changeFormat() {
-                that.options.format = that.element.attr("data-format");
-                // that.element.val(that.value.format(that.options.format, that.options.locale)).trigger("change");
-                that._set();
-            }
-
+        changeAttribute: function(attributeName, newValue){
             switch (attributeName) {
-                case "data-value": changeValue(); break;
-                case "data-locale": changeLocale(); break;
-                case "data-format": changeFormat(); break;
+                case "disabled": this.toggleState(); break;
+                case "data-value": this.val(newValue); break;
+                case "data-locale": this.i18n(newValue); break;
+                case "data-format":
+                    this.options.format = newValue;
+                    this._set();
+                    break;
             }
         },
 
@@ -15186,7 +17019,7 @@ $.noConflict = function() {
                 overlay.addClass("transparent");
             } else {
                 overlay.css({
-                    background: Utils.hex2rgba(o.overlayColor, o.overlayAlpha)
+                    background: Metro.colors.toRGBA(o.overlayColor, o.overlayAlpha)
                 });
             }
 
@@ -15198,8 +17031,8 @@ $.noConflict = function() {
             var timeout = 0;
             if (o.onHide !== Metro.noop) {
                 timeout = 500;
-                Utils.exec(o.onHide, null, element[0]);
-                element.fire("hide");
+
+                this._fireEvent("hide");
             }
             setTimeout(function(){
                 Utils.exec(callback, null, element[0]);
@@ -15211,13 +17044,14 @@ $.noConflict = function() {
         },
 
         show: function(callback){
-            var that = this, element = this.element, o = this.options;
+            var element = this.element;
             this.setPosition();
             element.css({
                 visibility: "visible"
             });
-            Utils.exec(o.onShow, [that], element[0]);
-            element.fire("show");
+
+            this._fireEvent("show");
+
             Utils.exec(callback, null, element[0]);
         },
 
@@ -15277,7 +17111,7 @@ $.noConflict = function() {
         },
 
         close: function(){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
 
             if (!Utils.bool(o.leaveOverlayOnClose)) {
                 $('body').find('.overlay').remove();
@@ -15285,8 +17119,9 @@ $.noConflict = function() {
 
             this.hide(function(){
                 element.data("open", false);
-                Utils.exec(o.onClose, [element], element[0]);
-                element.fire("close");
+
+                that._fireEvent("close")
+
                 if (o.removeOnClose === true) {
                     element.remove();
                 }
@@ -15306,8 +17141,9 @@ $.noConflict = function() {
             }
 
             this.show(function(){
-                Utils.exec(o.onOpen, [element], element[0]);
-                element.fire("open");
+
+                that._fireEvent("open");
+
                 element.data("open", true);
                 if (parseInt(o.autoHide) > 0) {
                     setTimeout(function(){
@@ -15520,7 +17356,7 @@ $.noConflict = function() {
         },
 
         val: function(v){
-            var element = this.element, o = this.options;
+            var o = this.options;
 
             if (v === undefined) {
                 return this.value
@@ -15534,8 +17370,7 @@ $.noConflict = function() {
 
             this.value = v;
 
-            Utils.exec(o.onChange, [this.value], element[0]);
-            element.fire("change", {
+            this._fireEvent("change", {
                 value: this.value
             });
         },
@@ -15640,6 +17475,7 @@ $.noConflict = function() {
 
         _createSlider: function(){
             var element = this.element, o = this.options;
+            var slider_wrapper = $("<div>").addClass("slider-wrapper");
             var slider = $("<div>").addClass("slider").addClass(o.clsSlider).addClass(this.elem.className);
             var backside = $("<div>").addClass("backside").addClass(o.clsBackside);
             var complete = $("<div>").addClass("complete").addClass(o.clsComplete);
@@ -15655,6 +17491,9 @@ $.noConflict = function() {
 
             slider.insertBefore(element);
             element.appendTo(slider);
+            slider_wrapper.insertBefore(slider);
+            slider.appendTo(slider_wrapper);
+
             backside.appendTo(slider);
             complete.appendTo(slider);
             markerMin.appendTo(slider);
@@ -15669,9 +17508,9 @@ $.noConflict = function() {
             }
 
             if (o.showMinMax === true) {
-                var min_max_wrapper = $("<div>").addClass("slider-min-max clear").addClass(o.clsMinMax);
-                $("<span>").addClass("place-left").addClass(o.clsMin).html(o.min).appendTo(min_max_wrapper);
-                $("<span>").addClass("place-right").addClass(o.clsMax).html(o.max).appendTo(min_max_wrapper);
+                var min_max_wrapper = $("<div>").addClass("slider-min-max").addClass(o.clsMinMax);
+                $("<span>").addClass("slider-text-min").addClass(o.clsMin).html(o.min).appendTo(min_max_wrapper);
+                $("<span>").addClass("slider-text-max").addClass(o.clsMax).html(o.max).appendTo(min_max_wrapper);
                 if (o.minMaxPosition === Metro.position.TOP) {
                     min_max_wrapper.insertBefore(slider);
                 } else {
@@ -15794,7 +17633,8 @@ $.noConflict = function() {
         },
 
         _move: function(e){
-            var isMin = $(e.target).hasClass("marker-min");
+            var target = $(e.target).closest(".marker");
+            var isMin = target.hasClass("marker-min");
             var slider = this.slider;
             var offset = slider.offset(),
                 marker_size = slider.find(".marker").outerWidth(),
@@ -16074,8 +17914,7 @@ $.noConflict = function() {
                     return;
                 }
 
-                Utils.exec(o.onTarget, [target], element[0]);
-                element.fire("target", {
+                that._fireEvent("target", {
                     target: target
                 });
 
@@ -16141,8 +17980,7 @@ $.noConflict = function() {
                     height: height
                 }).appendTo(body);
 
-                Utils.exec(o.onDragStartItem, [dragItem[0], avatar[0]], element[0]);
-                element.fire("dragstartitem", {
+                that._fireEvent("drag-start-item", {
                     dragItem: dragItem[0],
                     avatar: avatar[0]
                 });
@@ -16151,8 +17989,7 @@ $.noConflict = function() {
 
                     move(e_move, avatar, dragItem);
 
-                    Utils.exec(o.onDragMoveItem, [dragItem[0], avatar[0]], element[0]);
-                    element.fire("dragmoveitem", {
+                    that._fireEvent("drag-move-item", {
                         dragItem: dragItem[0],
                         avatar: avatar[0]
                     });
@@ -16163,8 +18000,7 @@ $.noConflict = function() {
 
                 doc.on(Metro.events.stopAll, function(){
 
-                    Utils.exec(o.onDragDropItem, [dragItem[0], avatar[0]], element[0]);
-                    element.fire("dragdropitem", {
+                    that._fireEvent("drag-drop-item", {
                         dragItem: dragItem[0],
                         avatar: avatar[0]
                     });
@@ -16227,6 +18063,7 @@ $.noConflict = function() {
         dragElement: 'self',
         dragArea: "parent",
         timeout: 0,
+        boundaryRestriction: true,
         onCanDrag: Metro.noop_true,
         onDragStart: Metro.noop,
         onDragStop: Metro.noop,
@@ -16318,11 +18155,13 @@ $.noConflict = function() {
                     var top = Utils.pageXY(e).y - shiftY;
                     var left = Utils.pageXY(e).x - shiftX;
 
-                    if (top < 0) top = 0;
-                    if (left < 0) left = 0;
+                    if (o.boundaryRestriction) {
+                        if (top < 0) top = 0;
+                        if (left < 0) left = 0;
 
-                    if (top > that.dragArea.outerHeight() - element.outerHeight()) top = that.dragArea.outerHeight() - element.outerHeight();
-                    if (left > that.dragArea.outerWidth() - element.outerWidth()) left = that.dragArea.outerWidth() - element.outerWidth();
+                        if (top > that.dragArea.outerHeight() - element.outerHeight()) top = that.dragArea.outerHeight() - element.outerHeight();
+                        if (left > that.dragArea.outerWidth() - element.outerWidth()) left = that.dragArea.outerWidth() - element.outerWidth();
+                    }
 
                     position.y = top;
                     position.x = left;
@@ -16368,10 +18207,11 @@ $.noConflict = function() {
                 }, {ns: that.id, passive: false});
 
                 $(document).on(Metro.events.stopAll, function(){
-                    element.css({
-                        cursor: that.backup.cursor,
-                        zIndex: that.backup.zIndex
-                    }).removeClass("draggable");
+                    // element.css({
+                    //     cursor: that.backup.cursor,
+                    //     zIndex: that.backup.zIndex
+                    // });
+                    element.removeClass("draggable");
 
                     if (that.drag) {
                         $(document).off(Metro.events.moveAll, {ns: that.id});
@@ -16419,6 +18259,8 @@ $.noConflict = function() {
         toggleElement: null,
         noClose: false,
         duration: 50,
+        checkDropUp: false,
+        dropUp: false,
         onDrop: Metro.noop,
         onUp: Metro.noop,
         onDropdownCreate: Metro.noop
@@ -16455,15 +18297,20 @@ $.noConflict = function() {
 
             if (element.hasClass("open")) {
                 element.removeClass("open");
-                setImmediate(function(){
+                setTimeout(function(){
                     that.open(true);
-                })
+                },0);
             }
         },
 
         _createStructure: function(){
             var element = this.element, o = this.options;
             var toggle;
+
+            if (o.dropUp) {
+                element.addClass("drop-up");
+            }
+
             toggle = o.toggleElement !== null ? $(o.toggleElement) : element.siblings('.dropdown-toggle').length > 0 ? element.siblings('.dropdown-toggle') : element.prev();
 
             this.displayOrigin = Utils.getStyleOne(element, "display");
@@ -16488,8 +18335,8 @@ $.noConflict = function() {
                 if (element.css('display') !== 'none' && !element.hasClass('keep-open')) {
                     that._close(element);
                 } else {
-                    $('[data-role=dropdown]').each(function(i, el){
-                        if (!element.parents('[data-role=dropdown]').is(el) && !$(el).hasClass('keep-open') && $(el).css('display') !== 'none') {
+                    $('[data-role*=dropdown]').each(function(i, el){
+                        if (!element.parents('[data-role*=dropdown]').is(el) && !$(el).hasClass('keep-open') && $(el).css('display') !== 'none') {
                             if (!Utils.isValue(o.dropFilter)) {
                                 that._close(el);
                             } else {
@@ -16550,10 +18397,13 @@ $.noConflict = function() {
             }
 
             el[func](immediate ? 0 : options.duration, function(){
-                el.trigger("onClose", null, el);
-            });
+                dropdown._fireEvent("close");
+                dropdown._fireEvent("up");
 
-            this._fireEvent("up");
+                if (!options.dropUp && options.checkDropUp) {
+                    dropdown.element.removeClass("drop-up");
+                }
+            });
 
             this.isOpen = false;
         },
@@ -16569,10 +18419,19 @@ $.noConflict = function() {
             toggle.addClass('active-toggle').addClass("active-control");
 
             el[func](immediate ? 0 : options.duration, function(){
-                el.fire("onopen");
+
+                if (!options.dropUp && options.checkDropUp) {
+                    // dropdown.element.removeClass("drop-up");
+                    if (!Utils.inViewport(dropdown.element[0])) {
+                        dropdown.element.addClass("drop-up");
+                    }
+                }
+
+                dropdown._fireEvent("open");
+                dropdown._fireEvent("drop");
             });
 
-            this._fireEvent("drop");
+            // this._fireEvent("drop");
 
             this.isOpen = true;
         },
@@ -16593,7 +18452,7 @@ $.noConflict = function() {
         },
 
         /* eslint-disable-next-line */
-        changeAttribute: function(attributeName){
+        changeAttribute: function(){
         },
 
         destroy: function(){
@@ -16612,11 +18471,154 @@ $.noConflict = function() {
     });
 }(Metro, m4q));
 
-(function(Metro, $) {
+(function (Metro, $) {
     'use strict';
     var Utils = Metro.utils;
+    var Export = {
+
+        init: function () {
+            return this;
+        },
+
+        options: {
+            csvDelimiter: "\t",
+            csvNewLine: "\r\n",
+            includeHeader: true
+        },
+
+        setup: function (options) {
+            this.options = $.extend({}, this.options, options);
+            return this;
+        },
+
+        base64: function (data) {
+            return window.btoa(unescape(encodeURIComponent(data)));
+        },
+
+        b64toBlob: function (b64Data, contentType, sliceSize) {
+            contentType = contentType || '';
+            sliceSize = sliceSize || 512;
+
+            var byteCharacters = window.atob(b64Data);
+            var byteArrays = [];
+
+            var offset;
+            for (offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                var slice = byteCharacters.slice(offset, offset + sliceSize);
+
+                var byteNumbers = new Array(slice.length);
+                var i;
+                for (i = 0; i < slice.length; i = i + 1) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+
+                var byteArray = new window.Uint8Array(byteNumbers);
+
+                byteArrays.push(byteArray);
+            }
+
+            return new Blob(byteArrays, {
+                type: contentType
+            });
+        },
+
+        tableToCSV: function (table, filename, options) {
+            var o;
+            var body, head, data = "";
+            var i, j, row, cell;
+
+            o = $.extend({}, this.options, options);
+
+            table = $(table)[0];
+
+            if (Utils.bool(o.includeHeader)) {
+
+                head = table.querySelectorAll("thead")[0];
+
+                for (i = 0; i < head.rows.length; i++) {
+                    row = head.rows[i];
+                    for (j = 0; j < row.cells.length; j++) {
+                        cell = row.cells[j];
+                        data += (j ? o.csvDelimiter : '') + cell.textContent.trim();
+                    }
+                    data += o.csvNewLine;
+                }
+            }
+
+            body = table.querySelectorAll("tbody")[0];
+
+            for (i = 0; i < body.rows.length; i++) {
+                row = body.rows[i];
+                for (j = 0; j < row.cells.length; j++) {
+                    cell = row.cells[j];
+                    data += (j ? o.csvDelimiter : '') + cell.textContent.trim();
+                }
+                data += o.csvNewLine;
+            }
+
+            if (Utils.isValue(filename)) {
+                return this.createDownload(this.base64("\uFEFF" + data), 'application/csv', filename);
+            }
+
+            return data;
+        },
+
+        createDownload: function (data, contentType, filename) {
+            var blob, anchor, url;
+
+            anchor = document.createElement('a');
+            anchor.style.display = "none";
+            document.body.appendChild(anchor);
+
+            blob = this.b64toBlob(data, contentType);
+
+            url = window.URL.createObjectURL(blob);
+            anchor.href = url;
+            anchor.download = filename || Utils.elementId("download");
+            anchor.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(anchor);
+            return true;
+        },
+
+        arrayToCsv: function(array, filename, options){
+            var o, data = "", i, row;
+
+            o = $.extend({}, this.options, options);
+
+            for (i = 0; i < array.length; i++) {
+                row = array[i];
+
+                if (typeof row !== "object") {
+                    data += row + o.csvNewLine;
+                } else {
+                    $.each(row, function(key, val){
+                        data += (key ? o.csvDelimiter : '') + val.toString();
+                    });
+                    data += o.csvNewLine;
+                }
+            }
+
+            if (Utils.isValue(filename)) {
+                return this.createDownload(this.base64("\uFEFF" + data), 'application/csv', filename);
+            }
+
+            return data;
+        }
+    };
+
+    Metro.export = Export.init();
+
+    if (window.METRO_GLOBAL_COMMON === true) {
+        window.Export = Metro.export;
+    }
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
     var FileDefaultConfig = {
         fileDeferred: 0,
+        label: "",
         mode: "input",
         buttonTitle: "Choose file(s)",
         filesTitle: "file(s) selected",
@@ -16627,6 +18629,7 @@ $.noConflict = function() {
         clsPrepend: "",
         clsButton: "",
         clsCaption: "",
+        clsLabel: "",
         copyInlineStyles: false,
         onSelect: Metro.noop,
         onFileCreate: Metro.noop
@@ -16704,6 +18707,16 @@ $.noConflict = function() {
                 }
             }
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(container);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (element.is(":disabled")) {
                 this.disable();
             } else {
@@ -16751,8 +18764,7 @@ $.noConflict = function() {
                     files.html(element[0].files.length + " " +o.filesTitle);
                 }
 
-                Utils.exec(o.onSelect, [fi.files], element[0]);
-                element.fire("select", {
+                that._fireEvent("select", {
                     files: fi.files
                 });
             });
@@ -16839,7 +18851,127 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
     var Utils = Metro.utils;
+    var GradientBoxDefaultConfig = {
+        gradientType: "linear", // linear, radial
+        gradientShape: "",
+        gradientPosition: "",
+        gradientSize: "",
+        gradientColors: "#000, #fff",
+        gradientRepeat: false,
+        onGradientBoxCreate: Metro.noop
+    };
+
+    Metro.gradientBoxSetup = function (options) {
+        GradientBoxDefaultConfig = $.extend({}, GradientBoxDefaultConfig, options);
+    };
+
+    if (typeof window["metroGradientBoxSetup"] !== undefined) {
+        Metro.gradientBoxSetup(window["metroGradientBoxSetup"]);
+    }
+
+    Metro.Component('gradient-box', {
+        init: function( options, elem ) {
+            this._super(elem, options, GradientBoxDefaultConfig, {
+                // define instance vars here
+                colors: [],
+                shape: "",
+                size: "",
+                position: "",
+                type: "linear",
+                func: "linear-gradient",
+                repeat: false
+            });
+            return this;
+        },
+
+        _create: function(){
+            var o = this.options;
+
+            this.colors = o.gradientColors.toArray(",");
+            this.type = o.gradientType.toLowerCase();
+            this.shape = o.gradientShape.toLowerCase();
+            this.size = o.gradientSize.toLowerCase();
+            this.repeat = o.gradientRepeat;
+            this.func = (this.repeat ? "repeating-" : "") + this.type + "-gradient";
+
+
+            if (this.type === "linear") {
+                if ( !o.gradientPosition ) {
+                    this.position = "to bottom";
+                } else {
+                    this.position = isNaN(o.gradientPosition) === false ? o.gradientPosition + "deg" : o.gradientPosition;
+
+                    if (this.position.indexOf("deg") === -1 && this.position.indexOf("to ") === -1) {
+                        this.position = "to " + this.position;
+                    }
+                }
+            } else {
+                this.position = o.gradientPosition.toLowerCase();
+                if (this.position && this.position.indexOf("at ") === -1) {
+                    this.position = "at " + this.position;
+                }
+            }
+
+            this._createStructure();
+            this._setGradient();
+            this._fireEvent('gradient-box-create');
+        },
+
+        _createStructure: function(){
+            this.element.addClass("gradient-box");
+        },
+
+        _setGradient: function (){
+            var element = this.element;
+            var gradientRule, gradientOptions = [];
+
+            if (this.type === "radial" && this.shape) {
+                gradientOptions.push(this.shape);
+            }
+
+            if (this.type === "radial" && this.size) {
+                gradientOptions.push(this.size);
+            }
+
+            if (this.position) {
+                gradientOptions.push(this.position);
+            }
+
+            gradientRule = this.func + "(" + (gradientOptions.length ? gradientOptions.join(" ") + ", " : "") + this.colors.join(", ") + ")";
+
+            element.css({
+                background: gradientRule
+            });
+        },
+
+        changeAttribute: function(attr, newValue){
+            if (attr.indexOf("data-gradient-") === -1) {
+                return ;
+            }
+
+            switch (attr) {
+                case "data-gradient-type": this.type = newValue; this.func = newValue.toLowerCase() + "-gradient"; break;
+                case "data-gradient-colors": this.colors = newValue ? newValue.toArray(",") : ["#fff", "#000"]; break;
+                case "data-gradient-shape": this.shape = newValue.toLowerCase(); break;
+                case "data-gradient-size": this.size = newValue.toLowerCase(); break;
+                case "data-gradient-position": this.position = newValue.toLowerCase(); break;
+                case "data-gradient-repeat": this.repeat = Utils.bool(newValue); break;
+            }
+
+            this._setGradient();
+        },
+
+        destroy: function(){
+            return this.element;
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+
     var GravatarDefaultConfig = {
         gravatarDeferred: 0,
         email: "",
@@ -16887,7 +19019,7 @@ $.noConflict = function() {
             }
 
             size = size || 80;
-            def = Utils.encodeURI(def) || '404';
+            def = Metro.utils.encodeURI(def) || '404';
 
             return "//www.gravatar.com/avatar/" + Metro.md5((email.toLowerCase()).trim()) + '?size=' + size + '&d=' + def;
         },
@@ -17004,16 +19136,16 @@ $.noConflict = function() {
             if (elem.tagName === 'TD' || elem.tagName === 'TH') {
                 var wrp = $("<div/>").css("display", "inline-block").html(element.html());
                 element.html(wrp);
-                element = wrp;
+                this.element = wrp;
             }
 
             this.setPosition();
 
             hint.appendTo($('body'));
-            Utils.exec(o.onHintShow, [hint[0]], element[0]);
-            element.fire("hintshow", {
+
+            this._fireEvent("hint-show", {
                 hint: hint[0]
-            });
+            })
         },
 
         setPosition: function(){
@@ -17049,14 +19181,12 @@ $.noConflict = function() {
         removeHint: function(){
             var that = this;
             var hint = this.hint;
-            var element = this.element;
             var options = this.options;
             var timeout = options.onHintHide === Metro.noop ? 0 : 300;
 
             if (hint !== null) {
 
-                Utils.exec(options.onHintHide, [hint[0]], element[0]);
-                element.fire("hinthide", {
+                this._fireEvent("hint-hide", {
                     hint: hint[0]
                 });
 
@@ -17359,12 +19489,95 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
+    var ImageBoxDefaultConfig = {
+        image: null,
+        size: "cover",
+        repeat: false,
+        color: "transparent",
+        attachment: "scroll",
+        origin: "border",
+        onImageBoxCreate: Metro.noop
+    };
+
+    Metro.imageBoxSetup = function (options) {
+        ImageBoxDefaultConfig = $.extend({}, ImageBoxDefaultConfig, options);
+    };
+
+    if (typeof window["metroImageBoxSetup"] !== undefined) {
+        Metro.imageBoxSetup(window["metroImageBoxSetup"]);
+    }
+
+    Metro.Component('image-box', {
+        init: function( options, elem ) {
+            this._super(elem, options, ImageBoxDefaultConfig, {
+                // define instance vars here
+            });
+            return this;
+        },
+
+        _create: function(){
+            this._createStructure();
+
+            this._fireEvent('image-box-create');
+        },
+
+        _createStructure: function(){
+            var element = this.element;
+
+            element.addClass("image-box");
+
+            this._drawImage();
+        },
+
+        _drawImage: function(){
+            var element = this.element, o = this.options;
+            var image = new Image();
+            var portrait;
+
+            if (!element.attr("data-original"))
+                element.attr("data-original", o.image);
+
+            element.css({
+                backgroundImage: "url("+o.image+")",
+                backgroundSize: o.size,
+                backgroundRepeat: o.repeat ? "repeat" : "no-repeat",
+                backgroundColor: o.color,
+                backgroundAttachment: o.attachment,
+                backgroundOrigin: o.origin
+            });
+
+            image.src = o.image;
+            image.onload = function(){
+                portrait = this.height >= this.width;
+                element
+                    .removeClass("image-box__portrait image-box__landscape")
+                    .addClass("image-box__" + (portrait ? "portrait" : "landscape"));
+            }
+        },
+
+        changeAttribute: function(attr, newValue){
+            var attrName = attr.replace("data-", "");
+
+            if (["image", "size", "repeat", "color", "attachment", "origin"].indexOf(attrName) > -1) {
+                this.options[attrName] = newValue;
+                this._drawImage();
+            }
+        },
+
+        destroy: function(){
+            return this.element;
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
     var Utils = Metro.utils;
     var ImageCompareDefaultConfig = {
         imagecompareDeferred: 0,
         width: "100%",
         height: "auto",
-        onResize: Metro.noop,
         onSliderMove: Metro.noop,
         onImageCompareCreate: Metro.noop
     };
@@ -17467,12 +19680,13 @@ $.noConflict = function() {
                     slider.css({
                         left: left_pos
                     });
-                    Utils.exec(o.onSliderMove, [x, left_pos], slider[0]);
-                    element.fire("slidermove", {
+
+                    that._fireEvent("slider-move", {
                         x: x,
                         l: left_pos
                     });
                 }, {ns: that.id});
+
                 $(document).on(Metro.events.stopAll, function(){
                     $(document).off(Metro.events.moveAll, {ns: that.id});
                     $(document).off(Metro.events.stopAll, {ns: that.id});
@@ -17514,11 +19728,6 @@ $.noConflict = function() {
                     left: element_width / 2 - slider.width() / 2
                 });
 
-                Utils.exec(o.onResize, [element_width, element_height], element[0]);
-                element.fire("comparerresize", {
-                    width: element_width,
-                    height: element_height
-                });
             }, {ns: this.id});
         },
 
@@ -17533,6 +19742,130 @@ $.noConflict = function() {
             $(window).off(Metro.events.resize, {ns: this.id});
 
             return element;
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+
+    var Utils = Metro.utils;
+    var ImageGridDefaultConfig = {
+        useBackground: false,
+        backgroundSize: "cover",
+        backgroundPosition: "top left",
+
+        clsImageGrid: "",
+        clsImageGridItem: "",
+        clsImageGridImage: "",
+
+        onItemClick: Metro.noop,
+        onDrawItem: Metro.noop,
+        onImageGridCreate: Metro.noop
+    };
+
+    Metro.imageGridSetup = function (options) {
+        ImageGridDefaultConfig = $.extend({}, ImageGridDefaultConfig, options);
+    };
+
+    if (typeof window["metroImageGridSetup"] !== undefined) {
+        Metro.imageGridSetup(window["metroImageGridSetup"]);
+    }
+
+    Metro.Component('image-grid', {
+        init: function( options, elem ) {
+            this._super(elem, options, ImageGridDefaultConfig, {
+                // define instance vars here
+                items: []
+            });
+            return this;
+        },
+
+        _create: function(){
+            this.items = this.element.children("img");
+            this._createStructure();
+            this._createEvents();
+            this._fireEvent('image-grid-create');
+        },
+
+        _createStructure: function(){
+            var element = this.element, o = this.options;
+
+            element.addClass("image-grid").addClass(o.clsImageGrid);
+
+            this._createItems();
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element;
+
+            element.on(Metro.events.click, ".image-grid__item", function(){
+                that._fireEvent("item-click", {
+                    item: this
+                });
+            });
+        },
+
+        _createItems: function(){
+            var that = this, element = this.element, o = this.options;
+            var items = this.items;
+
+            element.clear();
+
+            items.each(function(){
+                var el = $(this);
+                var src = this.src;
+                var wrapper = $("<div>").addClass("image-grid__item").addClass(o.clsImageGridItem).appendTo(element);
+                var img = new Image();
+
+                img.src = src;
+                img.onload = function(){
+                    var port = this.height >= this.width;
+                    wrapper.addClass(port ? "image-grid__item-portrait" : "image-grid__item-landscape");
+                    el.addClass(o.clsImageGridImage).appendTo(wrapper);
+
+                    if (o.useBackground) {
+                        wrapper
+                            .css({
+                                background: "url("+src+")",
+                                backgroundRepeat: "no-repeat",
+                                backgroundSize: o.backgroundSize,
+                                backgroundPosition: o.backgroundPosition
+                            })
+                            .attr("data-original", el.attr("data-original") || src)
+                            .attr("data-title", el.attr("alt") || el.attr("data-title") || "");
+                        el.visible(false);
+                    }
+
+                    that._fireEvent("draw-item", {
+                        item: wrapper[0],
+                        image: el[0]
+                    });
+                }
+            });
+        },
+
+        changeAttribute: function(attr, val){
+            var o = this.options;
+
+            if (attr === "data-use-background") {
+                o.useBackground = Utils.bool(val);
+                this._createItems();
+            }
+
+            if (attr === "data-background-size") {
+                o.backgroundSize = val;
+                this._createItems();
+            }
+
+            if (attr === "data-background-position") {
+                o.backgroundPosition = val;
+                this._createItems();
+            }
+        },
+
+        destroy: function(){
+            this.element.remove();
         }
     });
 }(Metro, m4q));
@@ -17671,7 +20004,7 @@ $.noConflict = function() {
         },
 
         _createEvents: function(){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
             var glass = element.find(".image-magnifier-glass");
             var glass_size = glass[0].offsetWidth / 2;
             var image = element.find("img")[0];
@@ -17752,8 +20085,7 @@ $.noConflict = function() {
 
                 lens_move(pos);
 
-                Utils.exec(o.onMagnifierMove, [pos, glass[0], zoomElement ? zoomElement[0] : undefined], element[0]);
-                element.fire("magnifiermove", {
+                that._fireEvent("magnifier-move", {
                     pos: pos,
                     glass: glass[0],
                     zoomElement: zoomElement ? zoomElement[0] : undefined
@@ -17794,6 +20126,97 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
+    var ImagePlaceholderDefaultConfig = {
+        size: "100x100",
+        width: null,
+        height: null,
+        color: "#f8f8f8",
+        textColor: "#292929",
+        font: "12px sans-serif",
+        text: "",
+        showText: true,
+        onImagePlaceholderCreate: Metro.noop
+    };
+
+    Metro.imagePlaceholderSetup = function (options) {
+        ImagePlaceholderDefaultConfig = $.extend({}, ImagePlaceholderDefaultConfig, options);
+    };
+
+    if (typeof window["metroImagePlaceholderSetup"] !== undefined) {
+        Metro.imagePlaceholderSetup(window["metroImagePlaceholderSetup"]);
+    }
+
+    Metro.Component('image-placeholder', {
+        init: function( options, elem ) {
+            this._super(elem, options, ImagePlaceholderDefaultConfig, {
+                // define instance vars here
+                width: 0,
+                height: 0
+            });
+            return this;
+        },
+
+        _create: function(){
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('image-placeholder-create');
+        },
+
+        _createStructure: function(){
+            var element = this.element, o = this.options;
+            var size = o.size.toArray("x");
+
+            this.width = o.width ? o.width : size[0];
+            this.height = o.height ? o.height : size[1];
+
+            element.attr("src", this._createPlaceholder());
+        },
+
+        _createEvents: function(){
+        },
+
+        _createPlaceholder: function(){
+            var o = this.options;
+            var canvas = document.createElement("canvas"),
+                context = canvas.getContext("2d");
+
+            var width = this.width, height = this.height;
+
+            canvas.width = parseInt(width);
+            canvas.height = parseInt(height);
+
+            // background
+            context.clearRect(0, 0, width, height);
+            context.fillStyle = o.color;
+            context.fillRect(0, 0, width, height);
+
+            // text
+            context.fillStyle = o.textColor;
+            context.font = o.font;
+
+            context.translate(width / 2, height / 2);
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+
+            if (o.showText)
+                context.fillText(o.text ? o.text : width + " \u00d7 " + height, 0, 0);
+
+            return canvas.toDataURL();
+        },
+
+        // changeAttribute: function(attr, newValue){
+        // },
+
+        destroy: function(){
+            this.element.remove();
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
     var Utils = Metro.utils;
     var InfoBoxDefaultConfig = {
         infoboxDeferred: 0,
@@ -17803,6 +20226,7 @@ $.noConflict = function() {
         overlay: true,
         overlayColor: '#000000',
         overlayAlpha: .5,
+        overlayClickClose: false,
         autoHide: 0,
         removeOnClose: false,
         closeButton: true,
@@ -17853,7 +20277,7 @@ $.noConflict = function() {
                 overlay.addClass("transparent");
             } else {
                 overlay.css({
-                    background: Utils.hex2rgba(o.overlayColor, o.overlayAlpha)
+                    background: Metro.colors.toRGBA(o.overlayColor, o.overlayAlpha)
                 });
             }
 
@@ -17942,8 +20366,16 @@ $.noConflict = function() {
         open: function(){
             var that = this, element = this.element, o = this.options;
 
-            if (o.overlay === true) {
+            // if (o.overlay === true) {
+            //     this.overlay.appendTo($("body"));
+            // }
+            if (o.overlay === true && $(".overlay").length === 0) {
                 this.overlay.appendTo($("body"));
+                if (o.overlayClickClose === true) {
+                    this.overlay.on(Metro.events.click, function(){
+                        that.close();
+                    });
+                }
             }
 
             this._setPosition();
@@ -17952,10 +20384,10 @@ $.noConflict = function() {
                 visibility: "visible"
             });
 
-            Utils.exec(o.onOpen, null, element[0]);
-            element.fire("open");
+            this._fireEvent("open");
 
             element.data("open", true);
+
             if (parseInt(o.autoHide) > 0) {
                 setTimeout(function(){
                     that.close();
@@ -17975,8 +20407,7 @@ $.noConflict = function() {
                 top: "100%"
             });
 
-            Utils.exec(o.onClose, null, element[0]);
-            element.fire("close");
+            this._fireEvent("close");
 
             element.data("open", false);
 
@@ -18091,6 +20522,217 @@ $.noConflict = function() {
         }
     };
 }(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+
+    var Utils = Metro.utils;
+    var InputMaskDefaultConfig = {
+        maskPattern: ".",
+        mask: null,
+        maskPlaceholder: "_",
+        maskEditableStart: 0,
+        thresholdInterval: 300,
+        onChar: Metro.noop,
+        onInputMaskCreate: Metro.noop
+    };
+
+    Metro.inputMaskSetup = function (options) {
+        InputMaskDefaultConfig = $.extend({}, InputMaskDefaultConfig, options);
+    };
+
+    if (typeof window["metroInputMaskSetup"] !== undefined) {
+        Metro.inputMaskSetup(window["metroInputMaskSetup"]);
+    }
+
+    Metro.Component('input-mask', {
+        init: function( options, elem ) {
+            if ($.device) {
+                if (elem.setAttribute) elem.setAttribute("placeholder", options.mask);
+                console.warn("The component input-mask can't be initialized, because you run it on a mobile device!");
+                return ;
+            }
+            this._super(elem, options, InputMaskDefaultConfig, {
+                // define instance vars here
+                pattern: null,
+                mask: "",
+                maskArray: [],
+                placeholder: "",
+                length: 0,
+                thresholdTimer: null,
+                id: Utils.elementId("input-mask")
+            });
+            return this;
+        },
+
+        _create: function(){
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('input-mask-create');
+        },
+
+        _createStructure: function(){
+            var o = this.options;
+
+            if (!o.mask) {
+                throw new Error('You must provide a pattern for masked input.')
+            }
+
+            if (typeof o.maskPlaceholder !== 'string' || o.maskPlaceholder.length > 1) {
+                throw new Error('Mask placeholder should be a single character or an empty string.')
+            }
+
+            this.placeholder = o.maskPlaceholder;
+            this.mask = (""+o.mask);
+            this.maskArray = this.mask.split("");
+            this.pattern = new RegExp("^"+o.maskPattern+"+$");
+            this.length = this.mask.length;
+
+            this._showValue();
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element, o = this.options;
+            var editableStart = o.maskEditableStart;
+            var id = this.id;
+
+            var checkEditablePosition = function(pos){
+                if (pos < editableStart) {
+                    setPosition(editableStart);
+                    return false;
+                }
+                return true;
+            }
+
+            var checkEditableChar = function(pos){
+                return pos < that.mask.length && that.mask.charAt(pos) === that.placeholder;
+            }
+
+            var findNextEditablePosition = function (pos){
+                var i, a = that.maskArray;
+
+                for (i = pos; i <= a.length; i++) {
+                    if (a[i] === that.placeholder) {
+                        return i;
+                    }
+                }
+                return pos;
+            }
+
+            var setPosition = function(pos){
+                that.elem.setSelectionRange(pos, pos);
+            }
+
+            var clearThresholdInterval = function(){
+                clearInterval(that.thresholdTimer);
+                that.thresholdTimer = null;
+            }
+
+            element.on("change", function(){
+                if (this.value === "") {
+                    this.value = that.mask;
+                    setPosition(editableStart);
+                }
+            }, {ns: id});
+
+            element.on("focus click", function(){
+                checkEditablePosition(this.selectionStart);
+                setPosition(findNextEditablePosition(this.selectionStart));
+            }, {ns: id});
+
+            element.on("keydown", function(e){
+                var pos = this.selectionStart;
+                var val = this.value;
+                var code = e.code, key = e.key;
+
+                if (code === "ArrowRight" || code === "End") {
+                    return true;
+                } else {
+                    if (pos >= that.length && (["Backspace", "Home", "ArrowLeft", "ArrowUp"].indexOf(code) === -1)) {
+                        // Don't move over mask length
+                        e.preventDefault();
+                    } else if (code === "Home" || code === "ArrowUp") {
+                        // Goto editable start position
+                        e.preventDefault();
+                        setPosition(editableStart);
+                    } else if (code === "ArrowLeft") {
+                        if (pos - 1 < editableStart) {
+                            // Don't move behind a editable start position
+                            e.preventDefault();
+                        }
+                    } else if (code === "Backspace") {
+                        e.preventDefault();
+                        if (pos - 1 >= editableStart) {
+                            if (checkEditableChar(pos - 1)) {
+                                if (this.value.charAt(pos - 1) !== that.placeholder) {
+                                    // Replace char if it is not a mask placeholder
+                                    this.value = val.substr(0, pos - 1) + that.placeholder + val.substr(pos);
+                                }
+                            }
+                            // Move to prev char position
+                            setPosition(pos - 1);
+                        }
+                    } else if (code === "Space") {
+                        e.preventDefault();
+                        setPosition(pos + 1);
+                    } else if (!that.pattern.test(key)) {
+                        e.preventDefault();
+                    } else {
+                        e.preventDefault();
+                        if (checkEditableChar(pos)) {
+                            this.value = val.substr(0, pos) + (o.onChar === Metro.noop ? key : Utils.exec(o.onChar, [key], this)) + val.substr(pos + 1);
+                            setPosition(findNextEditablePosition(pos + 1));
+                        }
+                    }
+                }
+            }, {ns: id});
+
+            element.on("keyup", function(){
+                var el = this;
+
+                clearThresholdInterval();
+
+                that.thresholdTimer = setInterval(function(){
+                    clearThresholdInterval();
+                    setPosition(findNextEditablePosition(el.selectionStart));
+                }, o.thresholdInterval)
+            }, {ns: id});
+        },
+
+        _showValue: function(){
+            var that = this, elem = this.elem;
+            var a = new Array(this.length);
+            var val;
+            if (!elem.value) {
+                elem.value = this.mask;
+            } else {
+                val = elem.value;
+                $.each(this.maskArray, function(i, v){
+                    if (val[i] !== v && !that.pattern.test(val[i])) {
+                        a[i] = that.placeholder;
+                    } else {
+                        a[i] = val[i];
+                    }
+                });
+                this.elem.value = a.join("");
+            }
+        },
+
+        destroy: function(){
+            var element = this.element, id = this.id;
+
+            element.off("change", {ns: id});
+            element.off("focus", {ns: id});
+            element.off("click", {ns: id});
+            element.off("keydown", {ns: id});
+            element.off("keyup", {ns: id});
+
+            return element;
+        }
+    });
+}(Metro, m4q));
+
 
 (function(Metro, $) {
     'use strict';
@@ -18227,9 +20869,12 @@ $.noConflict = function() {
     var InputDefaultConfig = {
         inputDeferred: 0,
 
-        // mask: null,
+        label: "",
 
         autocomplete: null,
+        autocompleteUrl: null,
+        autocompleteUrlMethod: "GET",
+        autocompleteUrlKey: null,
         autocompleteDivider: ",",
         autocompleteListHeight: 200,
 
@@ -18259,7 +20904,9 @@ $.noConflict = function() {
         clsRevealButton: "",
         clsCustomButton: "",
         clsSearchButton: "",
+        clsLabel: "",
 
+        onAutocompleteSelect: Metro.noop,
         onHistoryChange: Metro.noop,
         onHistoryUp: Metro.noop,
         onHistoryDown: Metro.noop,
@@ -18365,6 +21012,12 @@ $.noConflict = function() {
                         .attr("type", "button")
                         .html(item.html);
 
+                    if (item.attr && typeof item.attr === 'object') {
+                        $.each(item.attr, function(k, v){
+                            customButton.attr($.dashedName(k), v);
+                        });
+                    }
+
                     customButton.data("action", item.onclick);
 
                     customButton.appendTo(buttons);
@@ -18395,8 +21048,14 @@ $.noConflict = function() {
                 });
             }
 
-            if (!Utils.isNull(o.autocomplete)) {
+            if (!Utils.isNull(o.autocomplete) || !Utils.isNull(o.autocompleteUrl)) {
+                $("<div>").addClass("autocomplete-list").css({
+                    maxHeight: o.autocompleteListHeight,
+                    display: "none"
+                }).appendTo(container);
+            }
 
+            if (Utils.isValue(o.autocomplete)) {
                 var autocomplete_obj = Utils.isObject(o.autocomplete);
 
                 if (autocomplete_obj !== false) {
@@ -18404,10 +21063,36 @@ $.noConflict = function() {
                 } else {
                     this.autocomplete = o.autocomplete.toArray(o.autocompleteDivider);
                 }
-                $("<div>").addClass("autocomplete-list").css({
-                    maxHeight: o.autocompleteListHeight,
-                    display: "none"
-                }).appendTo(container);
+            }
+
+            if (Utils.isValue(o.autocompleteUrl)) {
+                $.ajax({
+                    url: o.autocompleteUrl,
+                    method: o.autocompleteUrlMethod
+                }).then(function(response){
+                    var newData = [];
+
+                    try {
+                        newData = JSON.parse(response);
+                        if (o.autocompleteUrlKey) {
+                            newData = newData[o.autocompleteUrlKey];
+                        }
+                    } catch (e) {
+                        newData = response.split("\n");
+                    }
+
+                    that.autocomplete = that.autocomplete.concat(newData);
+                });
+            }
+
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(container);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
             }
 
             if (element.is(":disabled")) {
@@ -18430,11 +21115,12 @@ $.noConflict = function() {
                         display: "none"
                     })
                 }
-                Utils.exec(o.onClearClick, [curr, element.val()], element[0]);
-                element.fire("clearclick", {
+
+                that._fireEvent("clear-click", {
                     prev: curr,
                     val: element.val()
                 });
+
             });
 
             container.on(Metro.events.click, ".input-reveal-button", function(){
@@ -18444,19 +21130,20 @@ $.noConflict = function() {
                     element.attr('type', 'password');
                 }
 
-                Utils.exec(o.onRevealClick, [element.val()], element[0]);
-                element.fire("revealclick", {
+                that._fireEvent("reveal-click", {
                     val: element.val()
                 });
+
             });
 
             container.on(Metro.events.click, ".input-search-button", function(){
                 if (o.searchButtonClick !== 'submit') {
-                    Utils.exec(o.onSearchButtonClick, [element.val()], this);
-                    element.fire("searchbuttonclick", {
+
+                    that._fireEvent("search-button-click", {
                         val: element.val(),
                         button: this
                     });
+
                 } else {
                     this.form.submit();
                 }
@@ -18479,12 +21166,13 @@ $.noConflict = function() {
                     element.val("");
                     that.history.push(val);
                     that.historyIndex = that.history.length - 1;
-                    Utils.exec(o.onHistoryChange, [val, that.history, that.historyIndex], element[0]);
-                    element.fire("historychange", {
+
+                    that._fireEvent("history-change", {
                         val: val,
                         history: that.history,
                         historyIndex: that.historyIndex
-                    });
+                    })
+
                     if (o.preventSubmit === true) {
                         e.preventDefault();
                     }
@@ -18495,12 +21183,12 @@ $.noConflict = function() {
                     if (that.historyIndex >= 0) {
                         element.val("");
                         element.val(that.history[that.historyIndex]);
-                        Utils.exec(o.onHistoryDown, [element.val(), that.history, that.historyIndex], element[0]);
-                        element.fire("historydown", {
+
+                        that._fireEvent("history-down", {
                             val: element.val(),
                             history: that.history,
                             historyIndex: that.historyIndex
-                        });
+                        })
                     } else {
                         that.historyIndex = 0;
                     }
@@ -18512,12 +21200,12 @@ $.noConflict = function() {
                     if (that.historyIndex < that.history.length) {
                         element.val("");
                         element.val(that.history[that.historyIndex]);
-                        Utils.exec(o.onHistoryUp, [element.val(), that.history, that.historyIndex], element[0]);
-                        element.fire("historyup", {
+
+                        that._fireEvent("history-up", {
                             val: element.val(),
                             history: that.history,
                             historyIndex: that.historyIndex
-                        });
+                        })
                     } else {
                         that.historyIndex = that.history.length - 1;
                     }
@@ -18527,8 +21215,7 @@ $.noConflict = function() {
 
             element.on(Metro.events.keydown, function(e){
                 if (e.keyCode === Metro.keyCode.ENTER) {
-                    Utils.exec(o.onEnterClick, [element.val()], element[0]);
-                    element.fire("enterclick", {
+                    that._fireEvent("enter-click", {
                         val: element.val()
                     });
                 }
@@ -18544,42 +21231,58 @@ $.noConflict = function() {
 
             element.on(Metro.events.input, function(){
                 var val = this.value.toLowerCase();
-                var items;
-
-                if (autocompleteList.length === 0) {
-                    return;
-                }
-
-                autocompleteList.html("");
-
-                items = that.autocomplete.filter(function(item){
-                    return item.toLowerCase().indexOf(val) > -1;
-                });
-
-                autocompleteList.css({
-                    display: items.length > 0 ? "block" : "none"
-                });
-
-                $.each(items, function(i, v){
-                    var index = v.toLowerCase().indexOf(val);
-                    var item = $("<div>").addClass("item").attr("data-autocomplete-value", v);
-                    var html;
-
-                    if (index === 0) {
-                        html = "<strong>"+v.substr(0, val.length)+"</strong>"+v.substr(val.length);
-                    } else {
-                        html = v.substr(0, index) + "<strong>"+v.substr(index, val.length)+"</strong>"+v.substr(index + val.length);
-                    }
-                    item.html(html).appendTo(autocompleteList);
-                })
+                that._drawAutocompleteList(val);
             });
 
             container.on(Metro.events.click, ".autocomplete-list .item", function(){
-                element.val($(this).attr("data-autocomplete-value"));
+                var val = $(this).attr("data-autocomplete-value");
+                element.val(val);
                 autocompleteList.css({
                     display: "none"
                 });
                 element.trigger("change");
+                that._fireEvent("autocomplete-select", {
+                    value: val
+                });
+            });
+        },
+
+        _drawAutocompleteList: function(val){
+            var that = this, element = this.element;
+            var container = element.closest(".input");
+            var autocompleteList = container.find(".autocomplete-list");
+            var items;
+
+            if (autocompleteList.length === 0) {
+                return;
+            }
+
+            autocompleteList.html("");
+
+            items = this.autocomplete.filter(function(item){
+                return item.toLowerCase().indexOf(val) > -1;
+            });
+
+            autocompleteList.css({
+                display: items.length > 0 ? "block" : "none"
+            });
+
+            $.each(items, function(){
+                var v = this;
+                var index = v.toLowerCase().indexOf(val), content;
+                var item = $("<div>").addClass("item").attr("data-autocomplete-value", v);
+
+                if (index === 0) {
+                    content = "<strong>"+v.substr(0, val.length)+"</strong>"+v.substr(val.length);
+                } else {
+                    content = v.substr(0, index) + "<strong>"+v.substr(index, val.length)+"</strong>"+v.substr(index + val.length);
+                }
+
+                item.html(content).appendTo(autocompleteList);
+
+                that._fireEvent("draw-autocomplete-item", {
+                    item: item
+                })
             });
         },
 
@@ -18684,9 +21387,10 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
-    var Utils = Metro.utils;
+    //var Utils = Metro.utils;
     var KeypadDefaultConfig = {
         keypadDeferred: 0,
+        label: "",
         keySize: 48,
         keys: "1, 2, 3, 4, 5, 6, 7, 8, 9, 0",
         copyInlineStyles: false,
@@ -18708,6 +21412,7 @@ $.noConflict = function() {
         clsServiceKey: "",
         clsBackspace: "",
         clsClear: "",
+        clsLabel: "",
 
         onChange: Metro.noop,
         onClear: Metro.noop,
@@ -18805,6 +21510,16 @@ $.noConflict = function() {
             element.on(Metro.events.blur, function(){keypad.removeClass("focused");});
             element.on(Metro.events.focus, function(){keypad.addClass("focused");});
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(keypad);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (o.disabled === true || element.is(":disabled")) {
                 this.disable();
             } else {
@@ -18896,21 +21611,24 @@ $.noConflict = function() {
                         that._setKeysPosition();
                     }
 
-                    Utils.exec(o.onKey, [key.data('key'), that.value], element[0]);
-                    element.fire("key", {
+                    that._fireEvent("key", {
                         key: key.data("key"),
                         val: that.value
                     });
+
                 } else {
                     if (key.data('key') === '&times;') {
                         that.value = "";
-                        Utils.exec(o.onClear, null, element[0]);
-                        element.fire("clear");
+
+                        that._fireEvent("clear");
+
                     }
                     if (key.data('key') === '&larr;') {
                         that.value = (that.value.substring(0, that.value.length - 1));
-                        Utils.exec(o.onBackspace, [that.value], element[0]);
-                        element.fire("backspace");
+
+                        that._fireEvent("backspace", {
+                            val: that.value
+                        });
                     }
                 }
 
@@ -18922,8 +21640,11 @@ $.noConflict = function() {
                     }
                 }
 
-                element.trigger('change');
-                Utils.exec(o.onChange, [that.value], element[0]);
+                that._fireEvent('change', {
+                    val: that.val
+                })
+                // element.trigger('change');
+                // Utils.exec(o.onChange, [that.value], element[0]);
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -18960,14 +21681,14 @@ $.noConflict = function() {
         },
 
         shuffle: function(){
-            var element = this.element, o = this.options;
+            var o = this.options;
             for (var i = 0; i < o.shuffleCount; i++) {
                 this.keys_to_work = this.keys_to_work.shuffle();
             }
-            Utils.exec(o.onShuffle, [this.keys_to_work, this.keys], element[0]);
-            element.fire("shuffle", {
-                keys: this.keys,
-                keysToWork: this.keys_to_work
+
+            this._fireEvent("shuffle", {
+                keysToWork: this.keys_to_work,
+                keys: this.keys
             });
         },
 
@@ -18982,13 +21703,21 @@ $.noConflict = function() {
         },
 
         val: function(v){
+            var element = this.element;
 
             if (typeof v === "undefined") {
                 return this.value;
             }
 
-            this.value = v;
-            this.element[0].tagName === "INPUT" ? this.element.val(v) : this.element.text(v);
+            this.value = ""+v;
+
+            if (element[0].tagName === "INPUT") {
+                element.val(v);
+                // set cursor to end position
+            } else {
+                element.text(v)
+            }
+
             return this;
         },
 
@@ -19060,6 +21789,226 @@ $.noConflict = function() {
                 $(this).removeClass("open");
             }
         });
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+
+    var LightboxDefaultConfig = {
+        loop: true,
+        source: "img",
+
+        iconClose: "<span class='default-icon-cross'>",
+        iconPrev: "<span class='default-icon-chevron-left'>",
+        iconNext: "<span class='default-icon-chevron-right'>",
+
+        clsNext: "",
+        clsPrev: "",
+        clsClose: "",
+        clsImage: "",
+        clsImageContainer: "",
+        clsImageWrapper: "",
+        clsLightbox: "",
+
+        onDrawImage: Metro.noop,
+        onLightboxCreate: Metro.noop
+    };
+
+    Metro.lightboxSetup = function (options) {
+        LightboxDefaultConfig = $.extend({}, LightboxDefaultConfig, options);
+    };
+
+    if (typeof window["metroLightboxSetup"] !== undefined) {
+        Metro.lightboxSetup(window["metroLightboxSetup"]);
+    }
+
+    Metro.Component('lightbox', {
+        init: function( options, elem ) {
+            this._super(elem, options, LightboxDefaultConfig, {
+                // define instance vars here
+                overlay: null,
+                lightbox: null,
+                current: null,
+                items: []
+            });
+            return this;
+        },
+
+        _create: function(){
+            var o = this.options;
+
+            if (!o.source) {
+                o.source = "img";
+            }
+
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('lightbox-create');
+        },
+
+        _createStructure: function(){
+            var o = this.options;
+            var lightbox, overlay;
+
+            overlay = $(".lightbox-overlay");
+
+            if (overlay.length === 0) {
+                overlay = $("<div>").addClass("lightbox-overlay").appendTo("body").hide();
+            }
+
+            lightbox = $("<div>").addClass("lightbox").addClass(o.clsLightbox).appendTo("body").hide();
+
+            $("<span>").addClass("lightbox__prev").addClass(o.clsPrev).html(o.iconPrev).appendTo(lightbox);
+            $("<span>").addClass("lightbox__next").addClass(o.clsNext).html(o.iconNext).appendTo(lightbox);
+            $("<span>").addClass("lightbox__closer").addClass(o.clsClose).html(o.iconClose).appendTo(lightbox);
+            $("<div>").addClass("lightbox__image").addClass(o.clsImageContainer).appendTo(lightbox);
+
+            this.component = lightbox[0];
+            this.lightbox = lightbox;
+            this.overlay = overlay;
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element, o = this.options;
+            var lightbox = $(this.component);
+
+            element.on(Metro.events.click, o.source, function(){
+                that.open(this);
+            });
+
+            lightbox.on(Metro.events.click, ".lightbox__closer", function(){
+                that.close();
+            });
+
+            lightbox.on(Metro.events.click, ".lightbox__prev", function(){
+                that.prev();
+            });
+
+            lightbox.on(Metro.events.click, ".lightbox__next", function(){
+                that.next();
+            });
+        },
+
+        _setupItems: function(){
+            var element = this.element, o = this.options;
+            var items = element.find(o.source);
+
+            if (items.length === 0) {
+                return ;
+            }
+
+            this.items = items;
+        },
+
+        _goto: function(el){
+            var that = this, o = this.options;
+            var $el = $(el);
+            var img = $("<img>"), src;
+            var imageContainer, imageWrapper, activity;
+
+            imageContainer = this.lightbox.find(".lightbox__image");
+
+            imageContainer.find(".lightbox__image-wrapper").remove();
+            imageWrapper = $("<div>")
+                .addClass("lightbox__image-wrapper")
+                .addClass(o.clsImageWrapper)
+                .attr("data-title", ($el.attr("alt") || $el.attr("data-title") || ""))
+                .appendTo(imageContainer);
+
+            activity = $("<div>").appendTo(imageWrapper);
+
+            Metro.makePlugin(activity, "activity", {
+                type: "cycle",
+                style: "color"
+            });
+
+            this.current = el;
+
+            if (el.tagName === "IMG" || el.tagName === "DIV") {
+                src = $el.attr("data-original") || $el.attr("src");
+                img.attr("src", src);
+                img[0].onload = function(){
+                    var port = this.height > this.width;
+                    img.addClass(port ? "lightbox__image-portrait" : "lightbox__image-landscape").addClass(o.clsImage);
+                    img.attr("alt", $el.attr("alt"));
+                    img.appendTo(imageWrapper);
+                    activity.remove();
+                    that._fireEvent("draw-image", {
+                        image: img[0],
+                        item: imageWrapper[0]
+                    });
+                }
+            }
+        },
+
+        _index: function(el){
+            var index = -1;
+
+            this.items.each(function(i){
+                if (this === el) {
+                    index = i;
+                }
+            });
+
+            return index;
+        },
+
+        next: function(){
+            var index, current = this.current;
+
+            index = this._index(current);
+
+            if (index + 1 >= this.items.length) {
+                if (this.options.loop) {
+                    index = -1;
+                } else {
+                    return;
+                }
+            }
+
+            this._goto(this.items[index + 1]);
+        },
+
+        prev: function(){
+            var index, current = this.current;
+
+            index = this._index(current);
+
+            if (index - 1 < 0) {
+                if (this.options.loop) {
+                    index = this.items.length;
+                } else {
+                    return;
+                }
+            }
+
+            this._goto(this.items[index - 1]);
+        },
+
+        open: function(el){
+            this._setupItems();
+
+            this._goto(el);
+
+            this.overlay.show();
+            this.lightbox.show();
+
+            return this;
+        },
+
+        close: function(){
+            this.overlay.hide();
+            this.lightbox.hide();
+        },
+
+        changeAttribute: function(){
+        },
+
+        destroy: function(){
+            this.element.remove();
+        }
     });
 }(Metro, m4q));
 
@@ -19193,8 +22142,6 @@ $.noConflict = function() {
         },
 
         _build: function(data){
-            var element = this.element, o = this.options;
-
             if (Utils.isValue(data)) {
                 this._createItemsFromJSON(data);
             } else {
@@ -19204,8 +22151,7 @@ $.noConflict = function() {
             this._createStructure();
             this._createEvents();
 
-            Utils.exec(o.onListCreate, [element], element[0]);
-            element.fire("listcreate");
+            this._fireEvent("list-create");
         },
 
         _createItemsFromHTML: function(){
@@ -19286,8 +22232,8 @@ $.noConflict = function() {
                     o.items = parseInt(val);
                     that.currentPage = 1;
                     that._draw();
-                    Utils.exec(o.onRowsCountChange, [val], element[0]);
-                    element.fire("rowscountchange", {
+
+                    that._fireEvent("rows-count-change", {
                         val: val
                     });
                 }
@@ -19499,7 +22445,6 @@ $.noConflict = function() {
 
         _filter: function(){
             var that = this,
-                element = this.element,
                 o = this.options,
                 items, i, data, inset, c1, result;
 
@@ -19530,25 +22475,27 @@ $.noConflict = function() {
                     }
 
                     if (result) {
-                        Utils.exec(o.onFilterItemAccepted, [item], element[0]);
-                        element.fire("filteritemaccepted", {
+
+                        that._fireEvent("filter-item-accepted", {
                             item: item
                         });
+
                     } else {
-                        Utils.exec(o.onFilterItemDeclined, [item], element[0]);
-                        element.fire("filteritemdeclined", {
+
+                        that._fireEvent("filter-item-declined", {
                             item: item
                         });
+
                     }
 
                     return result;
                 });
 
-                Utils.exec(o.onSearch, [that.filterString, items], element[0]);
-                element.fire("search", {
+                that._fireEvent("search", {
                     search: that.filterString,
                     items: items
                 });
+
             } else {
                 items = this.items;
             }
@@ -19571,10 +22518,11 @@ $.noConflict = function() {
                 if (Utils.isValue(items[i])) {
                     $(items[i]).addClass(o.clsListItem).appendTo(element);
                 }
-                Utils.exec(o.onDrawItem, [items[i]], element[0]);
-                element.fire("drawitem", {
+
+                this._fireEvent("draw-item", {
                     item: items[i]
                 });
+
             }
 
             this._info(start + 1, stop + 1, items.length);
@@ -19582,8 +22530,7 @@ $.noConflict = function() {
 
             this.activity.hide();
 
-            Utils.exec(o.onDraw, null, element[0]);
-            element.fire("draw");
+            this._fireEvent("draw");
 
             if (cb !== undefined) {
                 Utils.exec(cb, [element], element[0])
@@ -19659,7 +22606,7 @@ $.noConflict = function() {
         },
 
         sorting: function(source, dir, redraw){
-            var that = this, element = this.element, o = this.options;
+            var that = this, o = this.options;
 
             if (Utils.isValue(source)) {
                 o.sortClass = source;
@@ -19668,8 +22615,7 @@ $.noConflict = function() {
                 o.sortDir= dir;
             }
 
-            Utils.exec(o.onSortStart, [this.items], element[0]);
-            element.fire("sortstart", {
+            this._fireEvent("sort-start", {
                 items: this.items
             });
 
@@ -19686,8 +22632,8 @@ $.noConflict = function() {
                 }
 
                 if (result !== 0) {
-                    Utils.exec(o.onSortItemSwitch, [a, b, result], element[0]);
-                    element.fire("sortitemswitch", {
+
+                    that._fireEvent("sort-item-switch", {
                         a: a,
                         b: b,
                         result: result
@@ -19697,10 +22643,9 @@ $.noConflict = function() {
                 return result;
             });
 
-            Utils.exec(o.onSortStop, [this.items], element[0]);
-            element.fire("sortstop", {
+            this._fireEvent("sort-stop", {
                 items: this.items
-            });
+            })
 
             if (redraw === true) {
                 this._draw();
@@ -19724,14 +22669,13 @@ $.noConflict = function() {
 
             o.source = source;
 
-            Utils.exec(o.onDataLoad, [o.source], element[0]);
-            element.fire("dataload", {
+            this._fireEvent("data-load", {
                 source: o.source
             });
 
             $.json(o.source).then(function(data){
-                Utils.exec(o.onDataLoaded, [o.source, data], element[0]);
-                element.fire("dataloaded", {
+
+                that._fireEvent("data-loaded", {
                     source: o.source,
                     data: data
                 });
@@ -19767,11 +22711,12 @@ $.noConflict = function() {
 
                 that.sorting(o.sortClass, o.sortDir, true);
             }, function(xhr){
-                Utils.exec(o.onDataLoadError, [o.source, xhr], element[0]);
-                element.fire("dataloaderror", {
+
+                that._fireEvent("data-load-error", {
                     source: o.source,
                     xhr: xhr
                 });
+
             });
         },
 
@@ -20102,17 +23047,18 @@ $.noConflict = function() {
                 var node = $(this).closest("li");
                 element.find(".node-group").removeClass("current-group");
                 node.addClass("current-group");
-                Utils.exec(o.onGroupNodeClick, [node], element[0]);
-                element.fire("groupnodeclick", {
+
+                that._fireEvent("group-node-click", {
                     node: node
                 });
+
             });
 
             element.on(Metro.events.dblclick, ".node-group > .data > .caption", function(){
                 var node = $(this).closest("li");
                 that.toggleNode(node);
-                Utils.exec(o.onNodeDblClick, [node], element[0]);
-                element.fire("nodedblclick", {
+
+                that._fireEvent("node-dbl-click", {
                     node: node
                 });
             });
@@ -20137,7 +23083,7 @@ $.noConflict = function() {
         },
 
         toggleNode: function(node){
-            var element = this.element, o = this.options;
+            var o = this.options;
             var func;
 
             node=$(node);
@@ -20149,8 +23095,8 @@ $.noConflict = function() {
             node.toggleClass("expanded");
 
             func = node.hasClass("expanded") !== true ? "slideUp" : "slideDown";
-            Utils.exec(o.onCollapseNode, [node], element[0]);
-            element.fire("collapsenode", {
+
+            this._fireEvent("collapse-node", {
                 node: node
             });
 
@@ -20198,8 +23144,7 @@ $.noConflict = function() {
             new_node.prepend(cb);
             Metro.makePlugin(cb, "checkbox", {});
 
-            Utils.exec(o.onNodeInsert, [new_node, node, target], element[0]);
-            element.fire("nodeinsert", {
+            this._fireEvent("node-insert", {
                 newNode: new_node,
                 parentNode: node,
                 list: target
@@ -20220,18 +23165,16 @@ $.noConflict = function() {
             node.addClass("expanded");
             node.append($("<ul>").addClass("listview").addClass("view-"+o.view));
 
-            Utils.exec(o.onNodeInsert, [node, null, element], element[0]);
-            element.fire("nodeinsert", {
+            this._fireEvent("node-insert", {
                 newNode: node,
                 parentNode: null,
                 list: element
-            });
+            })
 
             return node;
         },
 
         insertBefore: function(node, data){
-            var element = this.element, o = this.options;
             var new_node, parent_node, list;
 
             node=$(node);
@@ -20243,8 +23186,7 @@ $.noConflict = function() {
             parent_node = new_node.closest(".node");
             list = new_node.closest("ul");
 
-            Utils.exec(o.onNodeInsert, [new_node, parent_node, list], element[0]);
-            element.fire("nodeinsert", {
+            this._fireEvent("node-insert", {
                 newNode: new_node,
                 parentNode: parent_node,
                 list: list
@@ -20254,7 +23196,6 @@ $.noConflict = function() {
         },
 
         insertAfter: function(node, data){
-            var element = this.element, o = this.options;
             var new_node, parent_node, list;
 
             node=$(node);
@@ -20266,8 +23207,7 @@ $.noConflict = function() {
             parent_node = new_node.closest(".node");
             list = new_node.closest("ul");
 
-            Utils.exec(o.onNodeInsert, [new_node, parent_node, list], element[0]);
-            element.fire("nodeinsert", {
+            this._fireEvent("node-insert", {
                 newNode: new_node,
                 parentNode: parent_node,
                 list: list
@@ -20277,7 +23217,7 @@ $.noConflict = function() {
         },
 
         del: function(node){
-            var element = this.element, o = this.options;
+            var element = this.element;
 
             node=$(node);
 
@@ -20291,15 +23231,13 @@ $.noConflict = function() {
                 parent_node.removeClass("expanded");
                 parent_node.children(".node-toggle").remove();
             }
-            Utils.exec(o.onNodeDelete, [node], element[0]);
-            element.fire("nodedelete", {
+
+            this._fireEvent("node-delete", {
                 node: node
             });
         },
 
         clean: function(node){
-            var element = this.element, o = this.options;
-
             node=$(node);
 
             if (!node.length) {return;}
@@ -20307,8 +23245,8 @@ $.noConflict = function() {
             node.children("ul").remove();
             node.removeClass("expanded");
             node.children(".node-toggle").remove();
-            Utils.exec(o.onNodeClean, [node], element[0]);
-            element.fire("nodeclean", {
+
+            this._fireEvent("node-clean", {
                 node: node
             });
         },
@@ -20374,6 +23312,229 @@ $.noConflict = function() {
         }
     });
 }(Metro, m4q));
+
+/* eslint-disable */
+(function(Metro, $) {
+    'use strict';
+
+    var MarqueeDefaultConfig = {
+        items: null,
+        backgroundColor: "#fff",
+        color: "#000",
+        borderSize: 0,
+        borderColor: "transparent",
+        loop: true,
+        height: "auto",
+        width: "auto",
+        duration: 10000,
+        direction: "left",
+        ease: "linear",
+        mode: "default", // default || accent
+        accentPause: 2000,
+        firstPause: 1000,
+        stopOnHover: false,
+
+        clsMarquee: "",
+        clsMarqueeItem: "",
+
+        onMarqueeItem: Metro.noop,
+        onMarqueeItemComplete: Metro.noop,
+        onMarqueeComplete: Metro.noop,
+        onMarqueeCreate: Metro.noop
+    };
+
+    Metro.marqueeSetup = function (options) {
+        MarqueeDefaultConfig = $.extend({}, MarqueeDefaultConfig, options);
+    };
+
+    if (typeof window["metroMarqueeSetup"] !== undefined) {
+        Metro.marqueeSetup(window["metroMarqueeSetup"]);
+    }
+
+    Metro.Component('marquee', {
+        init: function( options, elem ) {
+            this._super(elem, options, MarqueeDefaultConfig, {
+                // define instance vars here
+                items: [],
+                running: false,
+                current: -1
+            });
+            return this;
+        },
+
+        _create: function(){
+            var that = this, element = this.element, o = this.options;
+
+            this._createStructure();
+            this._createEvents();
+
+            this._fireEvent('marquee-create');
+        },
+
+        _createStructure: function(){
+            var element = this.element, o = this.options;
+            var dir = o.direction.toLowerCase(), items, Utils = Metro.utils;
+            var h;
+
+            element.addClass("marquee").addClass(o.clsMarquee);
+
+            element.css({
+                height: o.height,
+                width: o.width,
+                backgroundColor: Metro.colors.isColor(o.backgroundColor) ? o.backgroundColor : MarqueeDefaultConfig.backgroundColor,
+                color: Metro.colors.isColor(o.color) ? o.color : MarqueeDefaultConfig.color,
+                borderStyle: "solid",
+                borderWidth: o.borderSize,
+                borderColor: Metro.colors.isColor(o.borderColor) ? o.borderColor : MarqueeDefaultConfig.borderColor
+            });
+
+            if (o.items) {
+                items = Utils.isObject(o.items);
+                if (items !== false) {
+                    $.each(items, function(){
+                        var el = $(this);
+
+                        if (el.length)
+                            el.appendTo(element);
+                        else
+                            element.append( $("<div>").html(this) );
+                    })
+                }
+            }
+
+            this.items = element.children("*").addClass("marquee__item").addClass(o.clsMarqueeItem).items();
+
+            if (dir === "left" || dir === "right") {
+                $(this.items).addClass("moveLeftRight");
+            } else {
+                $(this.items).addClass("moveUpDown");
+            }
+
+            if (o.height === "auto") {
+                h = 0;
+                $(this.items).each(function(){
+                    if ( +$(this).outerHeight(true) > h) {
+                        h = +$(this).outerHeight(true);
+                    }
+                });
+                element.height(h);
+            }
+
+            if (this.items.length) {
+                this.current = 0;
+            }
+
+            if (this.items.length) this.start();
+        },
+
+        _createEvents: function(){
+            var that = this, element = this.element, o = this.options;
+
+            element.on(Metro.events.enter, function(){
+                if (o.stopOnHover)
+                    $.pauseAll(that.items);
+            })
+
+            element.on(Metro.events.leave, function(){
+                if (o.stopOnHover)
+                    $.resumeAll(that.items);
+            })
+        },
+
+        start: function(){
+            var element = this.element, o = this.options;
+            var chain = [], dir = o.direction.toLowerCase(), mode = o.mode.toLowerCase();
+            var magic = 20;
+            var ease = o.ease.toArray(",");
+            var Utils = Metro.utils;
+
+            if (mode === "default") {
+                $.each(this.items, function (i) {
+                    var draw;
+                    var dur = +$(this).attr("data-duration") || o.duration
+
+                    if (["left", "right"].indexOf(dir) > -1) {
+                        draw = {
+                            left: dir === "left" ? [element.width(), -$(this).width() - magic] : [-$(this).width() - magic, element.width()]
+                        }
+                    } else {
+                        draw = {
+                            top: dir === "up" ? [element.height(), -$(this).height() - magic] : [-$(this).height() - magic, element.height()]
+                        }
+                    }
+
+                    chain.push({
+                        el: this,
+                        draw: draw,
+                        dur: dur,
+                        ease: "linear",
+                        defer: i === 0 ? +o.firstPause : 0
+                    });
+                });
+            } else {
+                $.each(this.items, function(i){
+                    var half, draw1, draw2;
+                    var dur = (+$(this).attr("data-duration") || o.duration) / 2;
+
+                    if (["left", "right"].indexOf(dir) > -1) {
+                        half = element.width() / 2 - $(this).width() / 2;
+                        draw1 = {
+                            left: dir === "left" ? [element.width(), half] : [-$(this).width() - magic, half]
+                        }
+                        draw2 = {
+                            left: dir === "left" ? [half, -$(this).width() - magic] : [half, element.width() + magic]
+                        }
+                    } else {
+                        half = element.height() / 2 - $(this).height() / 2;
+                        draw1 = {
+                            top: dir === "up" ? [element.height(), half] : [-$(this).height() - magic, half]
+                        }
+                        draw2 = {
+                            top: dir === "up" ? [half, -$(this).height() - magic] : [half, element.height() + magic]
+                        }
+                    }
+
+                    chain.push({
+                        el: this,
+                        draw: draw1,
+                        dur: dur,
+                        ease: ease[0] || "linear",
+                        defer: i === 0 ? +o.firstPause : 0
+                    });
+                    chain.push({
+                        el: this,
+                        draw: draw2,
+                        dur: dur,
+                        ease: ease[1] ? ease[1] : ease[0] ? ease[0] : "linear",
+                        defer: +o.accentPause
+                    });
+                });
+            }
+
+            this.running = true;
+
+            $.chain(chain, {
+                loop: o.loop,
+                onChainItem: Metro.utils.isFunc(o.onMarqueeItem),
+                onChainItemComplete: Metro.utils.isFunc(o.onMarqueeItemComplete),
+                onChainComplete: Metro.utils.isFunc(o.onMarqueeComplete)
+            });
+        },
+
+        stop: function(){
+            this.running = false;
+            $.stopAll(this.items);
+        },
+
+        changeAttribute: function(attr, newValue){
+        },
+
+        destroy: function(){
+            this.element.remove();
+        }
+    });
+}(Metro, m4q));
+/* eslint-enable */
 
 (function(Metro, $) {
     'use strict';
@@ -20581,7 +23742,6 @@ $.noConflict = function() {
         },
 
         _slideTo: function(to){
-            var element = this.element, o = this.options;
             var current, next, forward = to.toLowerCase() === 'next';
 
             current = this.pages[this.currentIndex];
@@ -20600,8 +23760,7 @@ $.noConflict = function() {
 
             next = this.pages[this.currentIndex];
 
-            Utils.exec(forward ? o.onNextPage : o.onPrevPage, [current, next], element[0]);
-            element.fire(forward ? "nextpage" : "prevpage", {
+            this._fireEvent(forward ? "next-page" : "prev-page", {
                 current: current,
                 next: next,
                 forward: forward
@@ -20762,6 +23921,213 @@ $.noConflict = function() {
     });
 }(Metro, m4q));
 
+(function(Metro) {
+    'use strict';
+    Metro.md5 = function (string) {
+        function RotateLeft(lValue, iShiftBits) {
+            return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
+        }
+
+        function AddUnsigned(lX,lY) {
+            var lX4,lY4,lX8,lY8,lResult;
+            lX8 = (lX & 0x80000000);
+            lY8 = (lY & 0x80000000);
+            lX4 = (lX & 0x40000000);
+            lY4 = (lY & 0x40000000);
+            lResult = (lX & 0x3FFFFFFF)+(lY & 0x3FFFFFFF);
+            if (lX4 & lY4) {
+                return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
+            }
+            if (lX4 | lY4) {
+                if (lResult & 0x40000000) {
+                    return (lResult ^ 0xC0000000 ^ lX8 ^ lY8);
+                } else {
+                    return (lResult ^ 0x40000000 ^ lX8 ^ lY8);
+                }
+            } else {
+                return (lResult ^ lX8 ^ lY8);
+            }
+        }
+
+        function F(x,y,z) { return (x & y) | ((~x) & z); }
+        function G(x,y,z) { return (x & z) | (y & (~z)); }
+        function H(x,y,z) { return (x ^ y ^ z); }
+        function I(x,y,z) { return (y ^ (x | (~z))); }
+
+        function FF(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(F(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        }
+
+        function GG(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(G(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        }
+
+        function HH(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(H(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        }
+
+        function II(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(I(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        }
+
+        function ConvertToWordArray(string) {
+            var lWordCount;
+            var lMessageLength = string.length;
+            var lNumberOfWords_temp1=lMessageLength + 8;
+            var lNumberOfWords_temp2=(lNumberOfWords_temp1-(lNumberOfWords_temp1 % 64))/64;
+            var lNumberOfWords = (lNumberOfWords_temp2+1)*16;
+            var lWordArray=Array(lNumberOfWords-1);
+            var lBytePosition = 0;
+            var lByteCount = 0;
+            while ( lByteCount < lMessageLength ) {
+                lWordCount = (lByteCount-(lByteCount % 4))/4;
+                lBytePosition = (lByteCount % 4)*8;
+                lWordArray[lWordCount] = (lWordArray[lWordCount] | (string.charCodeAt(lByteCount)<<lBytePosition));
+                lByteCount++;
+            }
+            lWordCount = (lByteCount-(lByteCount % 4))/4;
+            lBytePosition = (lByteCount % 4)*8;
+            lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80<<lBytePosition);
+            lWordArray[lNumberOfWords-2] = lMessageLength<<3;
+            lWordArray[lNumberOfWords-1] = lMessageLength>>>29;
+            return lWordArray;
+        }
+
+        function WordToHex(lValue) {
+            var WordToHexValue="",WordToHexValue_temp="",lByte,lCount;
+            for (lCount = 0;lCount<=3;lCount++) {
+                lByte = (lValue>>>(lCount*8)) & 255;
+                WordToHexValue_temp = "0" + lByte.toString(16);
+                WordToHexValue = WordToHexValue + WordToHexValue_temp.substr(WordToHexValue_temp.length-2,2);
+            }
+            return WordToHexValue;
+        }
+
+        function Utf8Encode(string) {
+            string = string.replace(/\r\n/g,"\n");
+            var utftext = "";
+
+            for (var n = 0; n < string.length; n++) {
+
+                var c = string.charCodeAt(n);
+
+                if (c < 128) {
+                    utftext += String.fromCharCode(c);
+                }
+                else if((c > 127) && (c < 2048)) {
+                    utftext += String.fromCharCode((c >> 6) | 192);
+                    utftext += String.fromCharCode((c & 63) | 128);
+                }
+                else {
+                    utftext += String.fromCharCode((c >> 12) | 224);
+                    utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                    utftext += String.fromCharCode((c & 63) | 128);
+                }
+
+            }
+
+            return utftext;
+        }
+
+        var x=[];
+        var k,AA,BB,CC,DD,a,b,c,d;
+        var S11=7, S12=12, S13=17, S14=22;
+        var S21=5, S22=9 , S23=14, S24=20;
+        var S31=4, S32=11, S33=16, S34=23;
+        var S41=6, S42=10, S43=15, S44=21;
+
+        string = Utf8Encode(string);
+
+        x = ConvertToWordArray(string);
+
+        a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
+
+        for (k=0;k<x.length;k+=16) {
+            AA=a; BB=b; CC=c; DD=d;
+            a=FF(a,b,c,d,x[k], S11,0xD76AA478);
+            d=FF(d,a,b,c,x[k+1], S12,0xE8C7B756);
+            c=FF(c,d,a,b,x[k+2], S13,0x242070DB);
+            b=FF(b,c,d,a,x[k+3], S14,0xC1BDCEEE);
+            a=FF(a,b,c,d,x[k+4], S11,0xF57C0FAF);
+            d=FF(d,a,b,c,x[k+5], S12,0x4787C62A);
+            c=FF(c,d,a,b,x[k+6], S13,0xA8304613);
+            b=FF(b,c,d,a,x[k+7], S14,0xFD469501);
+            a=FF(a,b,c,d,x[k+8], S11,0x698098D8);
+            d=FF(d,a,b,c,x[k+9], S12,0x8B44F7AF);
+            c=FF(c,d,a,b,x[k+10],S13,0xFFFF5BB1);
+            b=FF(b,c,d,a,x[k+11],S14,0x895CD7BE);
+            a=FF(a,b,c,d,x[k+12],S11,0x6B901122);
+            d=FF(d,a,b,c,x[k+13],S12,0xFD987193);
+            c=FF(c,d,a,b,x[k+14],S13,0xA679438E);
+            b=FF(b,c,d,a,x[k+15],S14,0x49B40821);
+            a=GG(a,b,c,d,x[k+1], S21,0xF61E2562);
+            d=GG(d,a,b,c,x[k+6], S22,0xC040B340);
+            c=GG(c,d,a,b,x[k+11],S23,0x265E5A51);
+            b=GG(b,c,d,a,x[k], S24,0xE9B6C7AA);
+            a=GG(a,b,c,d,x[k+5], S21,0xD62F105D);
+            d=GG(d,a,b,c,x[k+10],S22,0x2441453);
+            c=GG(c,d,a,b,x[k+15],S23,0xD8A1E681);
+            b=GG(b,c,d,a,x[k+4], S24,0xE7D3FBC8);
+            a=GG(a,b,c,d,x[k+9], S21,0x21E1CDE6);
+            d=GG(d,a,b,c,x[k+14],S22,0xC33707D6);
+            c=GG(c,d,a,b,x[k+3], S23,0xF4D50D87);
+            b=GG(b,c,d,a,x[k+8], S24,0x455A14ED);
+            a=GG(a,b,c,d,x[k+13],S21,0xA9E3E905);
+            d=GG(d,a,b,c,x[k+2], S22,0xFCEFA3F8);
+            c=GG(c,d,a,b,x[k+7], S23,0x676F02D9);
+            b=GG(b,c,d,a,x[k+12],S24,0x8D2A4C8A);
+            a=HH(a,b,c,d,x[k+5], S31,0xFFFA3942);
+            d=HH(d,a,b,c,x[k+8], S32,0x8771F681);
+            c=HH(c,d,a,b,x[k+11],S33,0x6D9D6122);
+            b=HH(b,c,d,a,x[k+14],S34,0xFDE5380C);
+            a=HH(a,b,c,d,x[k+1], S31,0xA4BEEA44);
+            d=HH(d,a,b,c,x[k+4], S32,0x4BDECFA9);
+            c=HH(c,d,a,b,x[k+7], S33,0xF6BB4B60);
+            b=HH(b,c,d,a,x[k+10],S34,0xBEBFBC70);
+            a=HH(a,b,c,d,x[k+13],S31,0x289B7EC6);
+            d=HH(d,a,b,c,x[k], S32,0xEAA127FA);
+            c=HH(c,d,a,b,x[k+3], S33,0xD4EF3085);
+            b=HH(b,c,d,a,x[k+6], S34,0x4881D05);
+            a=HH(a,b,c,d,x[k+9], S31,0xD9D4D039);
+            d=HH(d,a,b,c,x[k+12],S32,0xE6DB99E5);
+            c=HH(c,d,a,b,x[k+15],S33,0x1FA27CF8);
+            b=HH(b,c,d,a,x[k+2], S34,0xC4AC5665);
+            a=II(a,b,c,d,x[k], S41,0xF4292244);
+            d=II(d,a,b,c,x[k+7], S42,0x432AFF97);
+            c=II(c,d,a,b,x[k+14],S43,0xAB9423A7);
+            b=II(b,c,d,a,x[k+5], S44,0xFC93A039);
+            a=II(a,b,c,d,x[k+12],S41,0x655B59C3);
+            d=II(d,a,b,c,x[k+3], S42,0x8F0CCC92);
+            c=II(c,d,a,b,x[k+10],S43,0xFFEFF47D);
+            b=II(b,c,d,a,x[k+1], S44,0x85845DD1);
+            a=II(a,b,c,d,x[k+8], S41,0x6FA87E4F);
+            d=II(d,a,b,c,x[k+15],S42,0xFE2CE6E0);
+            c=II(c,d,a,b,x[k+6], S43,0xA3014314);
+            b=II(b,c,d,a,x[k+13],S44,0x4E0811A1);
+            a=II(a,b,c,d,x[k+4], S41,0xF7537E82);
+            d=II(d,a,b,c,x[k+11],S42,0xBD3AF235);
+            c=II(c,d,a,b,x[k+2], S43,0x2AD7D2BB);
+            b=II(b,c,d,a,x[k+9], S44,0xEB86D391);
+            a=AddUnsigned(a,AA);
+            b=AddUnsigned(b,BB);
+            c=AddUnsigned(c,CC);
+            d=AddUnsigned(d,DD);
+        }
+
+        var temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
+
+        return temp.toLowerCase();
+    };
+
+    if (window.METRO_GLOBAL_COMMON === true) {
+        window.md5 = Metro.md5;
+    }
+}(Metro, m4q));
+
 (function(Metro, $) {
     'use strict';
     var Utils = Metro.utils;
@@ -20798,18 +24164,14 @@ $.noConflict = function() {
         },
 
         _create: function(){
-            var element = this.element;
-
             this._createStructure();
             this._createEvents();
 
-            this._fireEvent("navview-create", {
-                element: element
-            });
+            this._fireEvent("navview-create");
         },
 
         _calcMenuHeight: function(){
-            var element = this.element, pane, menu;
+            var element = this.element, pane, menu_container;
             var elements_height = 0;
 
             pane = element.children(".navview-pane");
@@ -20817,27 +24179,43 @@ $.noConflict = function() {
                 return;
             }
 
-            menu = pane.children(".navview-menu-container");
+            menu_container = pane.children(".navview-menu-container");
 
-            if (menu.length === 0) {
+            if (menu_container.length === 0) {
                 return ;
             }
 
-            $.each(menu.prevAll(), function(){
+            $.each(menu_container.prevAll(), function(){
                 elements_height += $(this).outerHeight(true);
             });
-            $.each(menu.nextAll(), function(){
+
+            $.each(menu_container.nextAll(), function(){
                 elements_height += $(this).outerHeight(true);
             });
-            menu.css({
+
+            menu_container.css({
                 height: "calc(100% - "+(elements_height)+"px)"
             });
+
+            this.menuScrollStep = 48;
+            this.menuScrollDistance = Utils.nearest(menu_container[0].scrollHeight - menu_container.height(), 48);
+        },
+
+        _recalc: function(){
+            var that = this, element = this.element;
+            setTimeout(function(){
+                if (that.pane.width() === 48) {
+                    element.addClass("js-compact");
+                } else {
+                    element.removeClass("js-compact");
+                }
+                that._calcMenuHeight();
+            }, 200);
         },
 
         _createStructure: function(){
-            var that = this, element = this.element, o = this.options;
-            var pane, content, toggle, menu, menu_container, menu_h, menu_container_h;
-            var other_pane_container, prev;
+            var element = this.element, o = this.options;
+            var pane, content, toggle, menu/*, menu_container, menu_h, menu_container_h*/;
 
             element
                 .addClass("navview")
@@ -20850,37 +24228,15 @@ $.noConflict = function() {
             menu = pane.children(".navview-menu");
 
             if (menu.length) {
-                prev = menu.prevAll();
-                other_pane_container = $("<div>").addClass("navview-container");
-                other_pane_container.append(prev.reverse());
-                pane.prepend(other_pane_container);
-
-                menu_container = $("<div>").addClass("navview-menu-container").insertBefore(menu);
-                menu.appendTo(menu_container);
-            }
-
-            this._calcMenuHeight();
-
-            if (menu.length) {
-                setTimeout(function(){
-                    menu_h = menu.height();
-                    menu_container_h = menu_container.height();
-                    that.menuScrollStep = menu.children(":not(.item-separator), :not(.item-header)")[0].clientHeight;
-                    that.menuScrollDistance = menu_h > menu_container_h ? Utils.nearest(menu_h - menu_container_h, that.menuScrollStep) : 0;
-                }, 0)
+                menu.prevAll().reverse().wrapAll($("<div>").addClass("navview-container"));
+                menu.wrap($("<div>").addClass("navview-menu-container"));
             }
 
             this.pane = pane.length > 0 ? pane : null;
             this.content = content.length > 0 ? content : null;
             this.paneToggle = toggle.length > 0 ? toggle : null;
 
-            setTimeout(function(){
-                if (that.pane.width() === 48) {
-                    element.addClass("js-compact");
-                } else {
-                    element.removeClass("js-compact");
-                }
-            }, 200);
+            this._recalc();
         },
 
         _createEvents: function(){
@@ -20888,25 +24244,25 @@ $.noConflict = function() {
             var menu_container = element.find(".navview-menu-container");
             var menu = menu_container.children(".navview-menu");
 
-            if (menu_container.length) {
-                menu_container.on("mousewheel", function(e){
-                    var dir = e.deltaY > 0 ? -1 : 1;
-                    var step = that.menuScrollStep;
-                    var top = parseInt(menu.css('top'));
+            menu_container.on("mousewheel", function(e){
+                var pane_width = element.find(".navview-pane").width();
+                var dir = e.deltaY > 0 ? -1 : 1;
+                var step = that.menuScrollStep;
+                var distance = that.menuScrollDistance;
+                var top = parseInt(menu.css('top'));
 
-                    if (!element.hasClass("compacted")) {
-                        return false;
-                    }
+                if (pane_width > 48 /*|| !element.hasClass("compacted") */) {
+                    return false;
+                }
 
-                    if(dir === -1 && Math.abs(top) <= that.menuScrollDistance) {
-                        menu.css('top', parseInt(menu.css('top')) + step * dir);
-                    }
+                if(dir === -1 && Math.abs(top) <= distance) {
+                    menu.css('top', parseInt(menu.css('top')) + step * dir);
+                }
 
-                    if(dir === 1 && top <= -step) {
-                        menu.css('top', parseInt(menu.css('top')) + step * dir);
-                    }
-                });
-            }
+                if(dir === 1 && top <= -step) {
+                    menu.css('top', parseInt(menu.css('top')) + step * dir);
+                }
+            });
 
             element.on(Metro.events.click, ".pull-button, .holder", function(){
                 that.pullClick(this);
@@ -20920,10 +24276,11 @@ $.noConflict = function() {
             });
 
             element.on(Metro.events.click, ".navview-menu li > a", function(){
-                Utils.exec(o.onMenuItemClick, null, this);
-                element.fire("menuitemclick", {
+
+                that._fireEvent("menu-item-click", {
                     item: this
                 });
+
             });
 
             if (this.paneToggle !== null) {
@@ -20933,21 +24290,24 @@ $.noConflict = function() {
             }
 
             $(window).on(Metro.events.resize, function(){
-                var menu_h, menu_container_h, menu_container = element.children(".navview-menu-container"), menu;
+                var menu_h, menu_container_h,
+                    menu_container = element.children(".navview-menu-container"),
+                    menu;
+
+                if (that.pane.hasClass("open")) {
+                    that._recalc();
+                    return ;
+                }
 
                 element.removeClass("expanded");
                 that.pane.removeClass("open");
 
-                if ($(this).width() <= Metro.media_sizes[String(o.compact).toUpperCase()]) {
+                if ($(this).width() <= Metro.media_sizes[(""+o.compact).toUpperCase()]) {
                     element.removeClass("compacted");
                 }
 
                 if (menu_container.length) {
-
-                    that._calcMenuHeight();
-
                     menu = menu_container.children(".navview-menu");
-
                     setTimeout(function () {
                         menu_h = menu.height();
                         menu_container_h = menu_container.height();
@@ -20956,21 +24316,28 @@ $.noConflict = function() {
                     }, 0);
                 }
 
-                element.removeClass("js-compact");
-
-                setTimeout(function(){
-                    if (that.pane.width() === 48) {
-                        element.addClass("js-compact");
-                    }
-                }, 200);
+                that._recalc();
 
             }, {ns: this.id})
         },
 
-        pullClick: function(el){
-            var that = this, element = this.element;
+        _togglePaneMode: function(){
+            var element = this.element;
             var pane = this.pane;
             var pane_compact = pane.width() < 280;
+
+            if ((pane_compact || element.hasClass("expanded")) && !element.hasClass("compacted")) {
+                element.toggleClass("expanded");
+            } else
+
+            if (element.hasClass("compacted") || !pane_compact) {
+                element.toggleClass("compacted");
+            }
+
+        },
+
+        pullClick: function(el){
+            var that = this;
             var input;
 
             var target = $(el);
@@ -20984,23 +24351,11 @@ $.noConflict = function() {
 
             if (that.pane.hasClass("open")) {
                 that.close();
-            } else
-
-            if ((pane_compact || element.hasClass("expanded")) && !element.hasClass("compacted")) {
-                element.toggleClass("expanded");
-            } else
-
-            if (element.hasClass("compacted") || !pane_compact) {
-                element.toggleClass("compacted");
+            } else {
+                this._togglePaneMode();
             }
 
-            setTimeout(function(){
-                if (that.pane.width() === 48) {
-                    element.addClass("js-compact");
-                } else {
-                    element.removeClass("js-compact");
-                }
-            }, 200);
+            this._recalc();
 
             return true;
         },
@@ -21016,6 +24371,10 @@ $.noConflict = function() {
         toggle: function(){
             var pane = this.pane;
             pane.hasClass("open") ? pane.removeClass("open") : pane.addClass("open");
+        },
+
+        toggleMode: function(){
+            this._togglePaneMode();
         },
 
         /* eslint-disable-next-line */
@@ -21405,6 +24764,12 @@ $.noConflict = function() {
                     .attr("tabindex", -1)
                     .html(item.html);
 
+                if (item.attr && typeof item.attr === 'object') {
+                    $.each(item.attr, function(k, v){
+                        customButton.attr($.dashedName(k), v);
+                    });
+                }
+
                 customButton.data("action", item.onclick);
 
                 buttonsContainer.prepend(customButton);
@@ -21616,8 +24981,7 @@ $.noConflict = function() {
                 setTimeout(function(){
                     that.createPopover();
 
-                    Utils.exec(o.onPopoverShow, [that.popover], element[0]);
-                    element.fire("popovershow", {
+                    that._fireEvent("popover-show", {
                         popover: that.popover
                     });
 
@@ -21723,14 +25087,13 @@ $.noConflict = function() {
 
             this.popovered = true;
 
-            Utils.exec(o.onPopoverCreate, [element, popover], element[0]);
-            element.fire("popovercreate", {
+            this._fireEvent("popover-create", {
                 popover: popover
             });
         },
 
         removePopover: function(){
-            var that = this, element = this.element;
+            var that = this;
             var timeout = this.options.onPopoverHide === Metro.noop ? 0 : 300;
             var popover = this.popover;
 
@@ -21738,8 +25101,7 @@ $.noConflict = function() {
                 return ;
             }
 
-            Utils.exec(this.options.onPopoverHide, [popover], this.elem);
-            element.fire("popoverhide", {
+            this._fireEvent("popover-hide", {
                 popover: popover
             });
 
@@ -21753,7 +25115,7 @@ $.noConflict = function() {
         },
 
         show: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, o = this.options;
 
             if (this.popovered === true) {
                 return ;
@@ -21762,8 +25124,7 @@ $.noConflict = function() {
             setTimeout(function(){
                 that.createPopover();
 
-                Utils.exec(o.onPopoverShow, [that.popover], element[0]);
-                element.fire("popovershow", {
+                that._fireEvent("popover-show", {
                     popover: that.popover
                 });
 
@@ -21826,7 +25187,6 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
-    var Utils = Metro.utils;
     var ProgressDefaultConfig = {
         progressDeferred: 0,
         showValue: false,
@@ -21965,21 +25325,21 @@ $.noConflict = function() {
                 }
             }
 
-            Utils.exec(o.onValueChange, [this.value], element[0]);
-            element.fire("valuechange", {
-                vsl: this.value
+            this._fireEvent("value-change", {
+                val: this.value
             });
 
             if (this.value === 100) {
-                Utils.exec(o.onComplete, [this.value], element[0]);
-                element.fire("complete", {
+
+                this._fireEvent("complete", {
                     val: this.value
                 });
+
             }
         },
 
         buff: function(v){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
 
             if (v === undefined) {
                 return that.buffer;
@@ -21995,14 +25355,12 @@ $.noConflict = function() {
 
             bar.css("width", this.buffer + "%");
 
-            Utils.exec(o.onBufferChange, [this.buffer], element[0]);
-            element.fire("bufferchange", {
+            this._fireEvent("buffer-change", {
                 val: this.buffer
             });
 
             if (this.buffer === 100) {
-                Utils.exec(o.onBuffered, [this.buffer], element[0]);
-                element.fire("buffered", {
+                this._fireEvent("buffered", {
                     val: this.buffer
                 });
             }
@@ -22167,9 +25525,9 @@ $.noConflict = function() {
 (function(Metro, $) {
     'use strict';
     var Utils = Metro.utils;
-    var Colors = Metro.colors;
     var RatingDefaultConfig = {
         ratingDeferred: 0,
+        label: "",
         static: false,
         title: null,
         value: 0,
@@ -22184,6 +25542,7 @@ $.noConflict = function() {
         clsTitle: "",
         clsStars: "",
         clsResult: "",
+        clsLabel: "",
         onStarClick: Metro.noop,
         onRatingCreate: Metro.noop
     };
@@ -22234,18 +25593,6 @@ $.noConflict = function() {
             this.originValue = o.value;
             this.value = o.value > 0 ? Math[o.roundFunc](o.value) : 0;
 
-            if (o.starColor !== null) {
-                if (!Utils.isColor(o.starColor)) {
-                    o.starColor = Colors.color(o.starColor);
-                }
-            }
-
-            if (o.staredColor !== null) {
-                if (!Utils.isColor(o.staredColor)) {
-                    o.staredColor = Colors.color(o.staredColor);
-                }
-            }
-
             this._createRating();
             this._createEvents();
 
@@ -22283,10 +25630,10 @@ $.noConflict = function() {
 
             result.html(o.message);
 
-            if (o.starColor !== null) {
+            if (o.starColor !== null && Metro.colors.isColor(o.starColor)) {
                 Utils.addCssRule(sheet, "#" + id + " .stars:hover li", "color: " + o.starColor + ";");
             }
-            if (o.staredColor !== null) {
+            if (o.staredColor !== null && Metro.colors.isColor(o.staredColor)) {
                 Utils.addCssRule(sheet, "#"+id+" .stars li.on", "color: "+o.staredColor+";");
                 Utils.addCssRule(sheet, "#"+id+" .stars li.half::after", "color: "+o.staredColor+";");
             }
@@ -22313,6 +25660,16 @@ $.noConflict = function() {
                 }
             }
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(rating);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (element.is(":disabled")) {
                 this.disable();
             } else {
@@ -22323,7 +25680,7 @@ $.noConflict = function() {
         },
 
         _createEvents: function(){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
             var rating = this.rating;
 
             rating.on(Metro.events.click, ".stars li", function(){
@@ -22343,11 +25700,11 @@ $.noConflict = function() {
                 star.prevAll().addClass("on");
                 star.nextAll().removeClass("on");
 
-                Utils.exec(o.onStarClick, [value, star[0]], element[0]);
-                element.fire("starclick", {
+                that._fireEvent("star-click", {
                     value: value,
                     star: star[0]
                 });
+
             });
         },
 
@@ -22527,8 +25884,7 @@ $.noConflict = function() {
 
                 element.addClass("stop-pointer");
 
-                Utils.exec(o.onResizeStart, [size], element[0]);
-                element.fire("resizestart", {
+                that._fireEvent("resize-start", {
                     size: size
                 });
 
@@ -22547,10 +25903,10 @@ $.noConflict = function() {
 
                     element.css(size);
 
-                    Utils.exec(o.onResize, [size], element[0]);
-                    element.fire("resize", {
+                    that._fireEvent("resize", {
                         size: size
-                    });
+                    })
+
                 }, {ns: that.id});
 
                 $(document).on(Metro.events.stop, function(){
@@ -22564,10 +25920,10 @@ $.noConflict = function() {
                         height: parseInt(element.outerHeight())
                     };
 
-                    Utils.exec(o.onResizeStop, [size], element[0]);
-                    element.fire("resizestop", {
+                    that._fireEvent("resize-stop", {
                         size: size
                     });
+
                 }, {ns: that.id});
 
                 e.preventDefault();
@@ -22655,7 +26011,7 @@ $.noConflict = function() {
         },
 
         _createEvents: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
             var win = $.window();
 
             win.on("resize", function(){
@@ -22664,8 +26020,7 @@ $.noConflict = function() {
                 var oldSize = that.size;
                 var point;
 
-                Utils.exec(o.onWindowResize, [windowWidth, windowHeight, window.METRO_MEDIA], element[0]);
-                element.fire("windowresize", {
+                that._fireEvent("window-resize", {
                     width: windowWidth,
                     height: windowHeight,
                     media: window.METRO_MEDIA
@@ -22676,13 +26031,14 @@ $.noConflict = function() {
                         width: elementWidth,
                         height: elementHeight
                     };
-                    Utils.exec(o.onElementResize, [elementWidth, elementHeight, oldSize, window.METRO_MEDIA], element[0]);
-                    element.fire("windowresize", {
+
+                    that._fireEvent("element-resize", {
                         width: elementWidth,
                         height: elementHeight,
                         oldSize: oldSize,
                         media: window.METRO_MEDIA
                     });
+
                 }
 
                 if (that.media.length !== window.METRO_MEDIA.length) {
@@ -22690,24 +26046,26 @@ $.noConflict = function() {
                         point = that.media.filter(function(x){
                             return !window.METRO_MEDIA.contains(x);
                         });
-                        Utils.exec(o.onMediaPointLeave, [point, window.METRO_MEDIA], element[0]);
-                        element.fire("mediapointleave", {
+
+                        that._fireEvent("media-point-leave", {
                             point: point,
                             media: window.METRO_MEDIA
                         });
+
                     } else {
                         point = window.METRO_MEDIA.filter(function(x){
                             return !that.media.contains(x);
                         });
-                        Utils.exec(o.onMediaPointEnter, [point, window.METRO_MEDIA], element[0]);
-                        element.fire("mediapointenter", {
+
+                        that._fireEvent("media-point-enter", {
                             point: point,
                             media: window.METRO_MEDIA
                         });
                     }
+
                     that.media = window.METRO_MEDIA;
-                    Utils.exec(o.onMediaPoint, [point, window.METRO_MEDIA], element[0]);
-                    element.fire("mediapoint", {
+
+                    that._fireEvent("media-point", {
                         point: point,
                         media: window.METRO_MEDIA
                     });
@@ -22806,8 +26164,7 @@ $.noConflict = function() {
                     if (o.onStatic === Metro.noop && link.attr("href") !== undefined) {
                         document.location.href = link.attr("href");
                     } else {
-                        Utils.exec(o.onStatic, [tab[0]], element[0]);
-                        element.fire("static", {
+                        that._fireEvent("static", {
                             tab: tab[0]
                         });
                     }
@@ -22821,7 +26178,7 @@ $.noConflict = function() {
         },
 
         open: function(tab){
-            var element = this.element, o = this.options;
+            var element = this.element;
             var $tab = $(tab);
             var tabs = element.find(".tabs-holder li");
             var sections = element.find(".content-holder .section");
@@ -22834,8 +26191,7 @@ $.noConflict = function() {
             sections.removeClass("active");
             if (target_section) target_section.addClass("active");
 
-            Utils.exec(o.onTab, [$tab[0]], element[0]);
-            element.fire("tab", {
+            this._fireEvent("tab", {
                 tab: $tab[0]
             });
         },
@@ -22874,6 +26230,7 @@ $.noConflict = function() {
         var el = $(target);
         var rect = Utils.rect(el[0]);
         var x, y;
+        var Colors = Metro.colors;
 
         if (el.length === 0) {
             return ;
@@ -22918,7 +26275,7 @@ $.noConflict = function() {
         }
 
         ripple.css({
-            background: Utils.hex2rgba(color, alpha),
+            background: Colors.toRGBA(color, alpha),
             width: size,
             height: size,
             top: y + 'px',
@@ -22954,7 +26311,7 @@ $.noConflict = function() {
 
             function changeColor(){
                 var color = element.attr("data-ripple-color");
-                if (!Utils.isColor(color)) {
+                if (!Metro.colors.isColor(color)) {
                     return;
                 }
                 o.rippleColor = color;
@@ -22988,6 +26345,7 @@ $.noConflict = function() {
     'use strict';
     var Utils = Metro.utils;
     var SelectDefaultConfig = {
+        label: "",
         size: "normal",
         selectDeferred: 0,
         clearButton: false,
@@ -22996,13 +26354,17 @@ $.noConflict = function() {
         placeholder: "",
         addEmptyValue: false,
         emptyValue: "",
-        duration: 100,
+        duration: 0,
         prepend: "",
         append: "",
-        filterPlaceholder: "",
+        filterPlaceholder: "Search...",
         filter: true,
         copyInlineStyles: false,
         dropHeight: 200,
+        checkDropUp: true,
+        dropUp: false,
+        showGroupName: false,
+        shortTag: true,
 
         clsSelect: "",
         clsSelectInput: "",
@@ -23015,6 +26377,8 @@ $.noConflict = function() {
         clsDropContainer: "",
         clsSelectedItem: "",
         clsSelectedItemRemover: "",
+        clsLabel: "",
+        clsGroupName: "",
 
         onChange: Metro.noop,
         onUp: Metro.noop,
@@ -23064,7 +26428,7 @@ $.noConflict = function() {
         _addTag: function(val, data){
             var element = this.element, o = this.options;
             var tag, tagSize, container = element.closest(".select");
-            tag = $("<div>").addClass("tag").addClass(o.clsSelectedItem).html("<span class='title'>"+val+"</span>").data("option", data);
+            tag = $("<div>").addClass("tag").addClass(o.shortTag ? "short-tag" : "").addClass(o.clsSelectedItem).html("<span class='title'>"+val+"</span>").data("option", data);
             $("<span>").addClass("remover").addClass(o.clsSelectedItemRemover).html("&times;").appendTo(tag);
 
             if (container.hasClass("input-large")) {
@@ -23078,22 +26442,35 @@ $.noConflict = function() {
             return tag;
         },
 
-        _addOption: function(item, parent, input, multiple){
+        _addOption: function(item, parent, input, multiple, group){
             var option = $(item);
             var l, a;
             var element = this.element, o = this.options;
             var html = Utils.isValue(option.attr('data-template')) ? option.attr('data-template').replace("$1", item.text):item.text;
+            var displayValue = option.attr("data-display");
 
             l = $("<li>").addClass(o.clsOption).data("option", item).attr("data-text", item.text).attr('data-value', item.value ? item.value : "");
             a = $("<a>").html(html);
 
+            if (displayValue) {
+                l.attr("data-display", displayValue);
+                html = displayValue;
+            }
+
             l.addClass(item.className);
+
+            l.data("group", group);
 
             if (option.is(":disabled")) {
                 l.addClass("disabled");
             }
 
             if (option.is(":selected")) {
+
+                if (o.showGroupName && group) {
+                    html += "&nbsp;<span class='selected-item__group-name "+o.clsGroupName+"'>" + group + "</span>";
+                }
+
                 if (multiple) {
                     l.addClass("d-none");
                     input.append(this._addTag(html, l));
@@ -23111,13 +26488,13 @@ $.noConflict = function() {
         },
 
         _addOptionGroup: function(item, parent, input, multiple){
-            var that = this;
+            var that = this, o = this.options;
             var group = $(item);
 
-            $("<li>").html(item.label).addClass("group-title").appendTo(parent);
+            $("<li>").html(item.label).addClass("group-title").addClass(o.clsOptionGroup).appendTo(parent);
 
             $.each(group.children(), function(){
-                that._addOption(this, parent, input, multiple);
+                that._addOption(this, parent, input, multiple, item.label);
             })
         },
 
@@ -23136,7 +26513,7 @@ $.noConflict = function() {
 
             $.each(element.children(), function(){
                 if (this.tagName === "OPTION") {
-                    that._addOption(this, list, input, multiple);
+                    that._addOption(this, list, input, multiple, null);
                 } else if (this.tagName === "OPTGROUP") {
                     that._addOptionGroup(this, list, input, multiple);
                 }
@@ -23144,7 +26521,7 @@ $.noConflict = function() {
         },
 
         _createSelect: function(){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
 
             var container = $("<label>").addClass("select " + element[0].className).addClass(o.clsSelect);
             var multiple = element[0].multiple;
@@ -23198,6 +26575,8 @@ $.noConflict = function() {
                 dropFilter: ".select",
                 duration: o.duration,
                 toggleElement: [container],
+                checkDropUp: o.checkDropUp,
+                dropUp: o.dropUp,
                 onDrop: function(){
                     var dropped, target;
                     dropdown_toggle.addClass("active-toggle");
@@ -23207,28 +26586,27 @@ $.noConflict = function() {
                         if (drop.is(drop_container)) {
                             return ;
                         }
-                        var dataDrop = drop.data('dropdown');
+                        var dataDrop = Metro.getPlugin(drop, 'dropdown');
                         if (dataDrop && dataDrop.close) {
                             dataDrop.close();
                         }
                     });
 
-                    filter_input.val("").trigger(Metro.events.keyup).focus();
+                    filter_input.val("").trigger(Metro.events.keyup);//.focus();
 
                     target = list.find("li.active").length > 0 ? $(list.find("li.active")[0]) : undefined;
                     if (target !== undefined) {
                         list[0].scrollTop = target.position().top - ( (list.height() - target.height() )/ 2);
                     }
 
-                    Utils.exec(o.onDrop, [list[0]], element[0]);
-                    element.fire("drop", {
+                    that._fireEvent("drop", {
                         list: list[0]
                     });
                 },
                 onUp: function(){
                     dropdown_toggle.removeClass("active-toggle");
-                    Utils.exec(o.onUp, [list[0]], element[0]);
-                    element.fire("up", {
+
+                    that._fireEvent("up", {
                         list: list[0]
                     });
                 }
@@ -23263,6 +26641,16 @@ $.noConflict = function() {
                 container.addClass("rtl").attr("dir", "rtl");
             }
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(container);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (element.is(':disabled')) {
                 this.disable();
             } else {
@@ -23293,6 +26681,7 @@ $.noConflict = function() {
                 element.val(o.emptyValue);
                 if (element[0].multiple) {
                     list.find("li").removeClass("d-none");
+                    input.clear();
                 }
                 that._setPlaceholder();
                 e.preventDefault();
@@ -23320,11 +26709,17 @@ $.noConflict = function() {
                     return ;
                 }
                 var leaf = $(this);
+                var displayValue = leaf.attr("data-display");
                 var val = leaf.data('value');
-                var html = leaf.children('a').html();
+                var group = leaf.data('group');
+                var html = displayValue ? displayValue : leaf.children('a').html();
                 var selected;
                 var option = leaf.data("option");
                 var options = element.find("option");
+
+                if (o.showGroupName && group) {
+                    html += "&nbsp;<span class='selected-item__group-name "+o.clsGroupName+"'>" + group + "</span>";
+                }
 
                 if (element[0].multiple) {
                     leaf.addClass("d-none");
@@ -23342,8 +26737,7 @@ $.noConflict = function() {
                     }
                 });
 
-                Utils.exec(o.onItemSelect, [val, option, leaf[0]], element[0]);
-                element.fire("itemselect", {
+                that._fireEvent("item-select", {
                     val: val,
                     option: option,
                     leaf: leaf[0]
@@ -23351,8 +26745,7 @@ $.noConflict = function() {
 
                 selected = that.getSelected();
 
-                Utils.exec(o.onChange, [selected], element[0]);
-                element.fire("change", {
+                that._fireEvent("change", {
                     selected: selected
                 });
             });
@@ -23371,14 +26764,13 @@ $.noConflict = function() {
                 });
                 item.remove();
 
-                Utils.exec(o.onItemDeselect, [option], element[0]);
-                element.fire("itemdeselect", {
+                that._fireEvent("item-deselect", {
                     option: option
                 });
 
                 selected = that.getSelected();
-                Utils.exec(o.onChange, [selected], element[0]);
-                element.fire("change", {
+
+                that._fireEvent("change", {
                     selected: selected
                 });
 
@@ -23431,7 +26823,7 @@ $.noConflict = function() {
         },
 
         reset: function(to_default){
-            var element = this.element, o = this.options;
+            var element = this.element;
             var options = element.find("option");
             var select = element.closest('.select');
             var selected;
@@ -23446,8 +26838,8 @@ $.noConflict = function() {
             this._createOptions();
 
             selected = this.getSelected();
-            Utils.exec(o.onChange, [selected], element[0]);
-            element.fire("change", {
+
+            this._fireEvent("change", {
                 selected: selected
             });
         },
@@ -23464,14 +26856,14 @@ $.noConflict = function() {
         },
 
         val: function(val){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
             var input = element.siblings(".select-input");
             var options = element.find("option");
             var list_items = this.list.find("li");
             var result = [];
             var multiple = element.attr("multiple") !== undefined;
             var option;
-            var i, html, list_item, option_value, tag, selected;
+            var i, html, list_item, option_value, selected, group;
 
             if (Utils.isNull(val)) {
                 $.each(options, function(){
@@ -23483,7 +26875,7 @@ $.noConflict = function() {
             $.each(options, function(){
                 this.selected = false;
             });
-            list_items.removeClass("active");
+            list_items.removeClass("active").removeClass(o.clsOptionActive);
             input.html('');
 
             if (Array.isArray(val) === false) {
@@ -23502,15 +26894,23 @@ $.noConflict = function() {
 
                 for(i = 0; i < list_items.length; i++) {
                     list_item = $(list_items[i]);
+                    group = list_item.data("group");
                     option_value = list_item.attr("data-value");
                     if (""+option_value === ""+this) {
+
+                        if (o.showGroupName && group) {
+                            html += "&nbsp;<span class='selected-item__group-name'>" + group + "</span>";
+                        }
+
                         if (multiple) {
                             list_item.addClass("d-none");
-                            tag = $("<div>").addClass("tag").addClass(o.clsSelectedItem).html("<span class='title'>"+html+"</span>").appendTo(input);
-                            tag.data("option", list_item);
-                            $("<span>").addClass("remover").addClass(o.clsSelectedItemRemover).html("&times;").appendTo(tag);
+                            input.append(that._addTag(html, list_item));
+
+                            // tag = $("<div>").addClass("tag").addClass(o.clsSelectedItem).html("<span class='title'>"+html+"</span>").appendTo(input);
+                            // tag.data("option", list_item);
+                            // $("<span>").addClass("remover").addClass(o.clsSelectedItemRemover).html("&times;").appendTo(tag);
                         } else {
-                            list_item.addClass("active");
+                            list_item.addClass("active").addClass(o.clsOptionActive);
                             input.html(html);
                         }
                         break;
@@ -23519,15 +26919,32 @@ $.noConflict = function() {
             });
 
             selected = this.getSelected();
-            Utils.exec(o.onChange, [selected], element[0]);
-            element.fire("change", {
+
+            this._fireEvent("change", {
                 selected: selected
             });
         },
 
-        data: function(op){
+        options: function(op, selected, delimiter){
+            return this.data(op, selected, delimiter);
+        },
+
+        data: function(op, selected, delimiter){
             var element = this.element;
-            var option_group;
+            var option_group, _selected;
+            var _delimiter = delimiter || ",";
+
+            if (typeof selected === "string") {
+                _selected = selected.toArray(_delimiter).map(function(v){
+                    return +v;
+                });
+            } else if (Array.isArray(selected)) {
+                _selected = selected.slice().map(function(v){
+                    return +v;
+                });
+            } else {
+                _selected = [];
+            }
 
             element.empty();
 
@@ -23538,10 +26955,16 @@ $.noConflict = function() {
                     if (Utils.isObject(val)) {
                         option_group = $("<optgroup label=''>").attr("label", key).appendTo(element);
                         $.each(val, function(key2, val2){
-                            $("<option>").attr("value", key2).text(val2).appendTo(option_group);
+                            var op = $("<option>").attr("value", key2).text(val2).appendTo(option_group);
+                            if (_selected.indexOf(+key2) > -1) {
+                                op.prop("selected", true);
+                            }
                         });
                     } else {
-                        $("<option>").attr("value", key).text(val).appendTo(element);
+                        var op = $("<option>").attr("value", key).text(val).appendTo(element);
+                        if (_selected.indexOf(+key) > -1) {
+                            op.prop("selected", true);
+                        }
                     }
                 });
             }
@@ -23743,13 +27166,12 @@ $.noConflict = function() {
                             })
                     });
                 }
-                Utils.exec(o.onStaticSet, null, element[0]);
-                element.fire("staticset");
+
+                this._fireEvent("static-set");
             }
             if (!Utils.mediaExist(o.static)) {
                 element.removeClass("static");
-                Utils.exec(o.onStaticLoss, null, element[0]);
-                element.fire("staticloss");
+                this._fireEvent("static-loss");
             }
         },
 
@@ -23776,8 +27198,7 @@ $.noConflict = function() {
                     });
             }
 
-            Utils.exec(o.onOpen, null, element[0]);
-            element.fire("open");
+            this._fireEvent("open");
         },
 
         close: function(){
@@ -23799,8 +27220,7 @@ $.noConflict = function() {
                     });
             }
 
-            Utils.exec(o.onClose, null, element[0]);
-            element.fire("close");
+            this._fireEvent("close");
         },
 
         toggle: function(){
@@ -23809,8 +27229,8 @@ $.noConflict = function() {
             } else {
                 this.open();
             }
-            Utils.exec(this.options.onToggle, null, this.element[0]);
-            this.element.fire("toggle");
+
+            this._fireEvent("toggle");
         },
 
         changeAttribute: function(){
@@ -23998,9 +27418,9 @@ $.noConflict = function() {
             hint.appendTo(marker);
 
             if (o.showMinMax === true) {
-                var min_max_wrapper = $("<div>").addClass("slider-min-max clear").addClass(o.clsMinMax);
-                $("<span>").addClass("place-left").addClass(o.clsMin).html(o.min).appendTo(min_max_wrapper);
-                $("<span>").addClass("place-right").addClass(o.clsMax).html(o.max).appendTo(min_max_wrapper);
+                var min_max_wrapper = $("<div>").addClass("slider-min-max").addClass(o.clsMinMax);
+                $("<span>").addClass("slider-text-min").addClass(o.clsMin).html(o.min).appendTo(min_max_wrapper);
+                $("<span>").addClass("slider-text-max").addClass(o.clsMax).html(o.max).appendTo(min_max_wrapper);
                 if (o.minMaxPosition === Metro.position.TOP) {
                     min_max_wrapper.insertBefore(slider);
                 } else {
@@ -24035,6 +27455,7 @@ $.noConflict = function() {
                 }
 
                 $(document).on(Metro.events.moveAll, function(e){
+                    if (e.cancelable) e.preventDefault();
                     that._move(e);
 
                     that._fireEvent("move", {
@@ -24683,6 +28104,7 @@ $.noConflict = function() {
     var Utils = Metro.utils;
     var SpinnerDefaultConfig = {
         spinnerDeferred: 0,
+        label: "",
         step: 1,
         plusIcon: "<span class='default-icon-plus'></span>",
         minusIcon: "<span class='default-icon-minus'></span>",
@@ -24698,6 +28120,7 @@ $.noConflict = function() {
         clsSpinnerButton: "",
         clsSpinnerButtonPlus: "",
         clsSpinnerButtonMinus: "",
+        clsLabel: "",
         onBeforeChange: Metro.noop_true,
         onChange: Metro.noop,
         onPlusClick: Metro.noop,
@@ -24762,6 +28185,16 @@ $.noConflict = function() {
                 spinner.addClass("hide-cursor");
             }
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(spinner);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (o.disabled === true || element.is(":disabled")) {
                 this.disable();
             } else {
@@ -24773,12 +28206,13 @@ $.noConflict = function() {
             var that = this, element = this.element, o = this.options;
             var spinner = element.closest(".spinner");
             var spinner_buttons = spinner.find(".spinner-button");
+            var value;
 
             var spinnerButtonClick = function(plus, threshold){
-                var curr = element.val();
-
-                var val = Number(element.val());
-                var step = Number(o.step);
+                var events = [plus ? "plus-click" : "minus-click", plus ? "arrow-up" : "arrow-down", "button-click", "arrow-click"];
+                var curr = +element.val();
+                var val = +element.val();
+                var step = +o.step;
 
                 if (plus) {
                     val += step;
@@ -24788,34 +28222,11 @@ $.noConflict = function() {
 
                 that._setValue(val.toFixed(o.fixed), true);
 
-                Utils.exec(plus ? o.onPlusClick : o.onMinusClick, [curr, val, element.val()], element[0]);
-                element.fire(plus ? "plusclick" : "minusclick", {
+                that._fireEvents(events, {
                     curr: curr,
                     val: val,
-                    elementVal: element.val()
-                });
-
-                Utils.exec(plus ? o.onArrowUp : o.onArrowDown, [curr, val, element.val()], element[0]);
-                element.fire(plus ? "arrowup" : "arrowdown", {
-                    curr: curr,
-                    val: val,
-                    elementVal: element.val()
-                });
-
-                Utils.exec(o.onButtonClick, [curr, val, element.val(), plus ? 'plus' : 'minus'], element[0]);
-                element.fire("buttonclick", {
-                    button: plus ? "plus" : "minus",
-                    curr: curr,
-                    val: val,
-                    elementVal: element.val()
-                });
-
-                Utils.exec(o.onArrowClick, [curr, val, element.val(), plus ? 'plus' : 'minus'], element[0]);
-                element.fire("arrowclick", {
-                    button: plus ? "plus" : "minus",
-                    curr: curr,
-                    val: val,
-                    elementVal: element.val()
+                    elementVal: element.val(),
+                    button: plus ? "plus" : "minus"
                 });
 
                 setTimeout(function(){
@@ -24828,25 +28239,51 @@ $.noConflict = function() {
             spinner.on(Metro.events.click, function(e){
                 $(".focused").removeClass("focused");
                 spinner.addClass("focused");
+
                 e.preventDefault();
                 e.stopPropagation();
             });
 
-            spinner_buttons.on(Metro.events.start, function(e){
+            spinner_buttons.on(Metro.events.startAll, function(e){
                 var plus = $(this).closest(".spinner-button").hasClass("spinner-button-plus");
-                e.preventDefault();
+
+                if (that.repeat_timer) return ;
+
                 that.repeat_timer = true;
                 spinnerButtonClick(plus, o.repeatThreshold);
+
+                e.preventDefault();
             });
 
-            spinner_buttons.on(Metro.events.stop, function(){
+            spinner_buttons.on(Metro.events.stopAll, function(){
                 that.repeat_timer = false;
             });
 
             element.on(Metro.events.keydown, function(e){
                 if (e.keyCode === Metro.keyCode.UP_ARROW || e.keyCode === Metro.keyCode.DOWN_ARROW) {
+
+                    if (that.repeat_timer) return ;
+
                     that.repeat_timer = true;
                     spinnerButtonClick(e.keyCode === Metro.keyCode.UP_ARROW, o.repeatThreshold);
+
+                } else {
+                    var key = e.key;
+                    if (key === "Backspace" || key === "Delete" || key === "ArrowLeft" || key === "ArrowRight" ) {
+                        //
+                    } else
+                    if (isNaN(key) || parseInt(key) < 0 && parseInt(key) > 9) {
+                        e.preventDefault();
+                    }
+
+                    value = parseInt(this.value);
+                }
+            });
+
+            element.on(Metro.events.keyup, function(){
+                var val = parseInt(this.value);
+                if ((o.minValue && val < o.minValue) || (o.maxValue && val > o.maxValue)) {
+                    this.value = value;
                 }
             });
 
@@ -24872,7 +28309,7 @@ $.noConflict = function() {
 
             element.val(val);
 
-            Utils.exec(o.onChange, [val], element[0]);
+            this._fireEvent("change", {val: val}, false, true);
 
             if (trigger_change === true) {
                 element.fire("change", {
@@ -24891,11 +28328,11 @@ $.noConflict = function() {
         },
 
         toDefault: function(){
-            var element = this.element, o = this.options;
+            var o = this.options;
             var val = Utils.isValue(o.defaultValue) ? Number(o.defaultValue) : 0;
             this._setValue(val.toFixed(o.fixed), true);
-            Utils.exec(o.onChange, [val], element[0]);
-            element.fire("change", {
+
+            this._fireEvent("change", {
                 val: val
             });
         },
@@ -25079,8 +28516,7 @@ $.noConflict = function() {
                 prev_block.addClass("stop-pointer");
                 next_block.addClass("stop-pointer");
 
-                Utils.exec(o.onResizeStart, [start_pos, gutter[0], prev_block[0], next_block[0]], element[0]);
-                element.fire("resizestart", {
+                that._fireEvent("resize-start", {
                     pos: start_pos,
                     gutter: gutter[0],
                     prevBlock: prev_block[0],
@@ -25101,18 +28537,17 @@ $.noConflict = function() {
                     prev_block.css("flex-basis", "calc(" + (prev_block_size + new_pos) + "% - "+(gutters.length * o.gutterSize)+"px)");
                     next_block.css("flex-basis", "calc(" + (next_block_size - new_pos) + "% - "+(gutters.length * o.gutterSize)+"px)");
 
-                    Utils.exec(o.onResizeSplit, [pos, gutter[0], prev_block[0], next_block[0]], element[0]);
-                    element.fire("resizesplit", {
+                    that._fireEvent("resize-split", {
                         pos: pos,
                         gutter: gutter[0],
                         prevBlock: prev_block[0],
                         nextBlock: next_block[0]
                     });
+
                 }, {ns: that.id});
 
                 $(window).on(Metro.events.stopAll, function(e){
                     var cur_pos;
-
 
                     prev_block.removeClass("stop-pointer");
                     next_block.removeClass("stop-pointer");
@@ -25126,13 +28561,13 @@ $.noConflict = function() {
 
                     cur_pos = Utils.getCursorPosition(element[0], e);
 
-                    Utils.exec(o.onResizeStop, [cur_pos, gutter[0], prev_block[0], next_block[0]], element[0]);
-                    element.fire("resizestop", {
+                    that._fireEvent("resize-stop", {
                         pos: cur_pos,
                         gutter: gutter[0],
                         prevBlock: prev_block[0],
                         nextBlock: next_block[0]
                     });
+
                 }, {ns: that.id})
             });
 
@@ -25141,11 +28576,11 @@ $.noConflict = function() {
                 var prev_block = gutter.prev(".split-block");
                 var next_block = gutter.next(".split-block");
 
-                Utils.exec(o.onResizeWindow, [prev_block[0], next_block[0]], element[0]);
-                element.fire("resizewindow", {
+                that._fireEvent("resize-window", {
                     prevBlock: prev_block[0],
                     nextBlock: next_block[0]
                 });
+
             }, {ns: that.id});
         },
 
@@ -25216,7 +28651,6 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
-    var Utils = Metro.utils;
     var StepperDefaultConfig = {
         stepperDeferred: 0,
         view: Metro.stepperView.SQUARE, // square, cycle, diamond
@@ -25285,8 +28719,8 @@ $.noConflict = function() {
                 var step = $(this).data("step");
                 if (o.stepClick === true) {
                     that.toStep(step);
-                    Utils.exec(o.onStepClick, [step], element[0]);
-                    element.fire("stepclick", {
+
+                    that._fireEvent("step-click", {
                         step: step
                     });
                 }
@@ -25329,6 +28763,7 @@ $.noConflict = function() {
         toStep: function(step){
             var element = this.element, o = this.options;
             var target = $(element.find(".step").get(step - 1));
+            var prevStep = this.current;
 
             if (target.length === 0) {
                 return ;
@@ -25344,10 +28779,11 @@ $.noConflict = function() {
             target.addClass("current").addClass(o.clsCurrent);
             target.prevAll().addClass("complete").addClass(o.clsComplete);
 
-            Utils.exec(o.onStep, [this.current], element[0]);
-            element.fire("step", {
-                step: this.current
+            this._fireEvent("step", {
+                step: this.current,
+                prev: prevStep
             });
+
         },
 
         changeAttribute: function(){
@@ -25526,32 +28962,33 @@ $.noConflict = function() {
 
             if (o.source !== null) {
 
-                Utils.exec(o.onDataLoad, [o.source], element[0]);
-                element.fire("dataload", {
+                this._fireEvent("data-load", {
                     source: o.source
                 });
 
                 $.json(o.source).then(function(data){
-                    Utils.exec(o.onDataLoaded, [o.source, data], element[0]);
-                    element.fire("dataloaded", {
+
+                    that._fireEvent("data-loaded", {
                         source: o.source,
                         data: data
                     });
+
                     that.data = data;
                     that.build();
                 }, function(xhr){
-                    Utils.exec(o.onDataLoadError, [o.source, xhr], element[0]);
-                    element.fire("dataloaderror", {
+
+                    that._fireEvent("data-load-error", {
                         source: o.source,
                         xhr: xhr
                     });
+
                 });
             } else {
                 this.data = o.data;
                 this.build();
             }
 
-            if (o.chromeNotice === true && Utils.detectChrome() === true && Utils.isTouchDevice() === false) {
+            if (o.chromeNotice === true && Utils.detectChrome() === true && $.touchable === false) {
                 $("<p>").addClass("text-small text-muted").html("*) In Chrome browser please press and hold Shift and turn the mouse wheel.").insertAfter(element);
             }
         },
@@ -25648,8 +29085,8 @@ $.noConflict = function() {
                     $("<div>").addClass("stream-secondary").html(stream_item.secondary).appendTo(stream);
                     $(stream_item.icon).addClass("stream-icon").appendTo(stream);
 
-                    var bg = Utils.computedRgbToHex(Utils.getStyleOne(stream, "background-color"));
-                    var fg = Utils.computedRgbToHex(Utils.getStyleOne(stream, "color"));
+                    var bg = Metro.colors.toHEX(Utils.getStyleOne(stream, "background-color"));
+                    var fg = Metro.colors.toHEX(Utils.getStyleOne(stream, "color"));
 
                     var stream_events = $("<div>").addClass("stream-events")
                         .data("background-color", bg)
@@ -25745,8 +29182,7 @@ $.noConflict = function() {
                                 event.html(event_item.html);
                             }
 
-                            Utils.exec(o.onDrawEvent, [event[0]], element[0]);
-                            element.fire("drawevent", {
+                            that._fireEvent("draw-event", {
                                 event: event[0]
                             });
 
@@ -25764,8 +29200,7 @@ $.noConflict = function() {
                         height: stream_height * rows
                     });
 
-                    Utils.exec(o.onDrawStream, [stream[0]], element[0]);
-                    element.fire("drawstream", {
+                    that._fireEvent("draw-stream", {
                         stream: stream[0]
                     });
 
@@ -25805,8 +29240,7 @@ $.noConflict = function() {
                                 height: "100%"
                             }).appendTo(streamer_events);
 
-                            Utils.exec(o.onDrawGlobalEvent, [event[0]], element[0]);
-                            element.fire("dataloaded", {
+                            that._fireEvent("draw-global-event", {
                                 event: event[0]
                             });
 
@@ -25828,15 +29262,13 @@ $.noConflict = function() {
                 }, o.startSlideSleep);
             }
 
-            this._fireEvent("streamer-create", {
-                element: element
-            });
+            this._fireEvent("streamer-create");
 
             this._fireScroll();
         },
 
         _fireScroll: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
             var scrollable = element.find(".events-area");
             var oldScroll = this.scroll;
 
@@ -25847,9 +29279,7 @@ $.noConflict = function() {
             this.scrollDir = this.scroll < scrollable[0].scrollLeft ? "left" : "right";
             this.scroll = scrollable[0].scrollLeft;
 
-            Utils.exec(o.onEventsScroll, [scrollable[0].scrollLeft, oldScroll, this.scrollDir, $.toArray(this.events)], element[0]);
-
-            element.fire("eventsscroll", {
+            this._fireEvent("events-scroll", {
                 scrollLeft: scrollable[0].scrollLeft,
                 oldScroll: oldScroll,
                 scrollDir: that.scrollDir,
@@ -25903,8 +29333,8 @@ $.noConflict = function() {
                             if (o.changeUri === true) {
                                 that._changeURI();
                             }
-                            Utils.exec(o.onEventSelect, [event[0], event.hasClass("selected")], element[0]);
-                            element.fire("eventselect", {
+
+                            that._fireEvent("event-select", {
                                 event: event[0],
                                 selected: event.hasClass("selected")
                             });
@@ -25921,8 +29351,7 @@ $.noConflict = function() {
 
                         } else {
 
-                            Utils.exec(o.onEventClick, [event[0]], element[0]);
-                            element.fire("eventclick", {
+                            that._fireEvent("event-click", {
                                 event: event[0]
                             });
 
@@ -25953,14 +29382,12 @@ $.noConflict = function() {
                     element.data("stream", index);
                     element.find(".stream-event").addClass("disabled");
                     that.enableStream(stream);
-                    Utils.exec(o.onStreamSelect, [stream], element[0]);
-                    element.fire("streamselect", {
+                    that._fireEvent("stream-select", {
                         stream: stream
                     });
                 }
 
-                Utils.exec(o.onStreamClick, [stream], element[0]);
-                element.fire("streamclick", {
+                that._fireEvent("stream-click", {
                     stream: stream
                 });
             });
@@ -25997,7 +29424,7 @@ $.noConflict = function() {
                 that._fireScroll();
             });
 
-            if (Utils.isTouchDevice() === true) {
+            if ($.touchable === true) {
                 element.off(Metro.events.click, ".stream").on(Metro.events.click, ".stream", function(){
                     var stream = $(this);
                     stream.toggleClass("focused");
@@ -26156,7 +29583,7 @@ $.noConflict = function() {
         },
 
         selectEvent: function(event, state){
-            var that = this, element = this.element, o = this.options;
+            var that = this, o = this.options;
             if (state === undefined) {
                 state = true;
             }
@@ -26171,8 +29598,8 @@ $.noConflict = function() {
             if (o.changeUri === true) {
                 that._changeURI();
             }
-            Utils.exec(o.onEventSelect, [event[0], state], element[0]);
-            element.fire("eventselect", {
+
+            this._fireEvent("event-select", {
                 event: event[0],
                 selected: state
             });
@@ -26188,28 +29615,28 @@ $.noConflict = function() {
 
             o.source = new_source;
 
-            Utils.exec(o.onDataLoad, [o.source], element[0]);
-            element.fire("dataload", {
+            this._fireEvent("data-load", {
                 source: o.source
             });
 
             $.json(o.source).then(function(data){
-                Utils.exec(o.onDataLoaded, [o.source, data], element[0]);
-                element.fire("dataloaded", {
+
+                that._fireEvent("data-loaded", {
                     source: o.source,
                     data: data
                 });
+
                 that.data = data;
                 that.build();
             }, function(xhr){
-                Utils.exec(o.onDataLoadError, [o.source, xhr], element[0]);
-                element.fire("dataloaderror", {
+
+                that._fireEvent("data-load-error", {
                     source: o.source,
                     xhr: xhr
                 });
             });
 
-            element.fire("sourcechange");
+            this._fireEvent("source-change");
         },
 
         changeData: function(data){
@@ -26222,7 +29649,7 @@ $.noConflict = function() {
 
             this.build();
 
-            element.fire("datachange", {
+            this._fireEvent("data-change", {
                 oldData: old_data,
                 newData: o.data
             });
@@ -26258,6 +29685,7 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+    var Utils = Metro.utils;
     var SwitchDefaultConfig = {
         switchDeferred: 0,
         material: false,
@@ -26287,7 +29715,7 @@ $.noConflict = function() {
 
         _create: function(){
             var element = this.element, o = this.options;
-            var container = $("<label>").addClass((o.material === true ? " switch-material " : " switch ") + element[0].className);
+            var container ;
             var check = $("<span>").addClass("check");
             var caption = $("<span>").addClass("caption").html(o.caption);
 
@@ -26299,10 +29727,15 @@ $.noConflict = function() {
                 })
             }
 
-            container.insertBefore(element);
-            element.appendTo(container);
+            container = element.wrap(
+                $("<label>").addClass((o.material === true ? " switch-material " : " switch ") + element[0].className)
+            );
+
             check.appendTo(container);
             caption.appendTo(container);
+
+            if (element.attr("data-on")) check.attr("data-on", element.attr("data-on"));
+            if (element.attr("data-off")) check.attr("data-off", element.attr("data-off"));
 
             if (o.transition === true) {
                 container.addClass("transition-on");
@@ -26324,9 +29757,7 @@ $.noConflict = function() {
                 this.enable();
             }
 
-            this._fireEvent("switch-create", {
-                element: element
-            });
+            this._fireEvent("switch-create");
         },
 
         disable: function(){
@@ -26347,6 +29778,18 @@ $.noConflict = function() {
             }
         },
 
+        toggle: function(v){
+            var element = this.element;
+
+            if (!Utils.isValue(v)) {
+                element.prop("checked", !Utils.bool(element.prop("checked")));
+            } else {
+                element.prop("checked", v === 1);
+            }
+
+            return this;
+        },
+
         changeAttribute: function(attributeName){
             switch (attributeName) {
                 case 'disabled': this.toggleState(); break;
@@ -26361,11 +29804,12 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
     var Utils = Metro.utils;
-    var Export = Metro.export;
     var TableDefaultConfig = {
+        showInspectorButton: false,
+        inspectorButtonIcon: "<span class='default-icon-equalizer'>",
         tableDeferred: 0,
-        emptyTableTitle: "Nothing to show",
         templateBeginToken: "<%",
         templateEndToken: "%>",
         paginationDistance: 5,
@@ -26415,16 +29859,17 @@ $.noConflict = function() {
         decimalSeparator: ".",
         thousandSeparator: ",",
 
-        tableRowsCountTitle: "Show entries:",
-        tableSearchTitle: "Search:",
-        tableInfoTitle: "Showing $1 to $2 of $3 entries",
-        paginationPrevTitle: "Prev",
-        paginationNextTitle: "Next",
-        allRecordsTitle: "All",
-        inspectorTitle: "Inspector",
-        tableSkipTitle: "Go to page",
+        tableRowsCountTitle: null,
+        tableSearchTitle: null,
+        tableInfoTitle: null,
+        paginationPrevTitle: null,
+        paginationNextTitle: null,
+        allRecordsTitle: null,
+        inspectorTitle: null,
+        tableSkipTitle: null,
+        emptyTableTitle: null,
 
-        activityType: "cycle",
+        activityType: "atom",
         activityStyle: "color",
         activityTimeout: 100,
 
@@ -26434,7 +29879,7 @@ $.noConflict = function() {
         paginationWrapper: null,
         skipWrapper: null,
 
-        cellWrapper: false,
+        cellWrapper: true,
 
         clsComponent: "",
         clsTableContainer: "",
@@ -26620,11 +30065,11 @@ $.noConflict = function() {
                 })
             }
 
-            this.component = table_component;
+            this.component = table_component[0];
 
             if (o.source !== null) {
-                Utils.exec(o.onDataLoad, [o.source], element[0]);
-                element.fire("dataload", {
+
+                this._fireEvent("data-load", {
                     source: o.source
                 });
 
@@ -26632,28 +30077,30 @@ $.noConflict = function() {
 
                 if (objSource !== false && $.isPlainObject(objSource)) {
                     that._build(objSource);
-                } else
-                this.activity.show(function(){
-                    $.json(o.source).then(function(data){
-                        that.activity.hide();
-                        if (typeof data !== "object") {
-                            throw new Error("Data for table is not a object");
-                        }
-                        Utils.exec(o.onDataLoaded, [o.source, data], element[0]);
-                        element.fire("dataloaded", {
-                            source: o.source,
-                            data: data
+                } else {
+                    this.activity.show(function () {
+                        $.json(o.source).then(function (data) {
+                            that.activity.hide();
+                            if (typeof data !== "object") {
+                                throw new Error("Data for table is not a object");
+                            }
+
+                            that._fireEvent("data-loaded", {
+                                source: o.source,
+                                data: data
+                            });
+
+                            that._build(data);
+                        }, function (xhr) {
+                            that.activity.hide();
+
+                            that._fireEvent("data-load-error", {
+                                source: o.source,
+                                xhr: xhr
+                            });
                         });
-                        that._build(data);
-                    }, function(xhr){
-                        that.activity.hide();
-                        Utils.exec(o.onDataLoadError, [o.source, xhr], element[0]);
-                        element.fire("dataloaderror", {
-                            source: o.source,
-                            xhr: xhr
-                        })
                     });
-                });
+                }
             } else {
                 that._build();
             }
@@ -26705,8 +30152,8 @@ $.noConflict = function() {
                 view = Metro.storage.getItem(viewPath);
                 if (Utils.isValue(view) && Utils.objectLength(view) === Utils.objectLength(this.view)) {
                     this.view = view;
-                    Utils.exec(o.onViewGet, [view], element[0]);
-                    element.fire("viewget", {
+
+                    this._fireEvent("view-get", {
                         source: "client",
                         view: view
                     });
@@ -26719,8 +30166,7 @@ $.noConflict = function() {
                 .then(function(view){
                     if (Utils.isValue(view) && Utils.objectLength(view) === Utils.objectLength(that.view)) {
                         that.view = view;
-                        Utils.exec(o.onViewGet, [view], element[0]);
-                        element.fire("viewget", {
+                        that._fireEvent("view-get", {
                             source: "server",
                             view: view
                         });
@@ -26782,7 +30228,7 @@ $.noConflict = function() {
         },
 
         _createView: function(){
-            var view, element = this.element, o = this.options;
+            var view;
 
             view = {};
 
@@ -26799,10 +30245,10 @@ $.noConflict = function() {
                 }
             });
 
-            Utils.exec(o.onViewCreated, [view], view);
-            element.fire("viewcreated", {
+            this._fireEvent("view-created", {
                 view: view
             });
+
             return view;
         },
 
@@ -26844,7 +30290,7 @@ $.noConflict = function() {
             inspector = $("<div data-role='draggable' data-drag-element='.table-inspector-header' data-drag-area='body'>").addClass("table-inspector");
             inspector.attr("for", this.element.attr("id"));
 
-            $("<div class='table-inspector-header'>"+o.inspectorTitle+"</div>").appendTo(inspector);
+            $("<div class='table-inspector-header'>"+(o.inspectorTitle || this.locale.table["inspector"])+"</div>").appendTo(inspector);
 
             table_wrap = $("<div>").addClass("table-wrap").appendTo(inspector);
 
@@ -26996,13 +30442,16 @@ $.noConflict = function() {
 
         _createTableHeader: function(){
             var element = this.element, o = this.options;
-            var head = $("<thead>").html('');
+            var head = element.find("thead");
             var tr, th, tds = [], j, cells;
             var view = o.staticView ? this._createView() : this.view;
 
-            element.find("thead").remove();
+            if (head.length === 0) {
+                head = $("<thead>");
+                element.prepend(head);
+            }
 
-            head.addClass(o.clsHead);
+            head.clear().addClass(o.clsHead);
 
             if (this.heads.length === 0) {
                 return head;
@@ -27068,28 +30517,38 @@ $.noConflict = function() {
             for (j = 0; j < cells.length; j++){
                 tds[j].appendTo(tr);
             }
-
-            element.prepend(head);
         },
 
         _createTableBody: function(){
             var body, head, element = this.element;
 
             head  = element.find("thead");
-            element.find("tbody").remove();
-            body = $("<tbody>").addClass(this.options.clsBody);
-            body.insertAfter(head);
+            body  = element.find("tbody");
+
+            if (body.length === 0) {
+                body = $("<tbody>").addClass(this.options.clsBody);
+                if (head.length !== 0) {
+                    body.insertAfter(head);
+                } else {
+                    element.append(body);
+                }
+            }
+
+            body.clear();
         },
 
         _createTableFooter: function(){
             var element = this.element, o = this.options;
-            var foot = $("<tfoot>").addClass(o.clsFooter);
+            var foot = element.find("tfoot");
             var tr, th;
 
-            element.find("tfoot").remove();
+            if (foot.length === 0) {
+                foot = $("<tfoot>").appendTo(element);
+            }
+
+            foot.clear().addClass(o.clsFooter);
 
             if (this.foots.length === 0) {
-                element.append(foot);
                 return;
             }
 
@@ -27116,8 +30575,6 @@ $.noConflict = function() {
 
                 th.appendTo(tr);
             });
-
-            element.append(foot);
         },
 
         _createTopBlock: function (){
@@ -27130,7 +30587,7 @@ $.noConflict = function() {
 
             search_input = $("<input>").attr("type", "text").appendTo(search_block);
             Metro.makePlugin(search_input, "input", {
-                prepend: o.tableSearchTitle
+                prepend: o.tableSearchTitle || that.locale.table["search"]
             });
 
             if (o.showSearch !== true) {
@@ -27143,14 +30600,14 @@ $.noConflict = function() {
             rows_select = $("<select>").appendTo(rows_block);
             $.each(o.rowsSteps.toArray(), function () {
                 var val = parseInt(this);
-                var option = $("<option>").attr("value", val).text(val === -1 ? o.allRecordsTitle : val).appendTo(rows_select);
+                var option = $("<option>").attr("value", val).text(val === -1 ? (o.allRecordsTitle || that.locale.table["all"]) : val).appendTo(rows_select);
                 if (val === parseInt(o.rows)) {
                     option.attr("selected", "selected");
                 }
             });
             Metro.makePlugin(rows_select, "select",{
                 filter: false,
-                prepend: o.tableRowsCountTitle,
+                prepend: o.tableRowsCountTitle || that.locale.table["rowsCount"],
                 onChange: function (val) {
                     val = parseInt(val);
                     if (val === parseInt(o.rows)) {
@@ -27159,12 +30616,16 @@ $.noConflict = function() {
                     o.rows = val;
                     that.currentPage = 1;
                     that._draw();
-                    Utils.exec(o.onRowsCountChange, [val], element[0]);
-                    element.fire("rowscountchange", {
+
+                    that._fireEvent("rows-count-change", {
                         val: val
                     });
                 }
             });
+
+            if (o.showInspectorButton) {
+                $("<button>").addClass("button inspector-button").attr("type", "button").html(o.inspectorButtonIcon).insertAfter(rows_block);
+            }
 
             if (o.showRowsSteps !== true) {
                 rows_block.hide();
@@ -27194,7 +30655,7 @@ $.noConflict = function() {
             skip.addClass(o.clsTableSkip);
 
             $("<input type='text'>").addClass("input table-skip-input").addClass(o.clsTableSkipInput).appendTo(skip);
-            $("<button>").addClass("button table-skip-button").addClass(o.clsTableSkipButton).html(o.tableSkipTitle).appendTo(skip);
+            $("<button>").addClass("button table-skip-button").addClass(o.clsTableSkipButton).html(o.tableSkipTitle || this.locale.table["skip"]).appendTo(skip);
 
             if (o.showSkip !== true) {
                 skip.hide();
@@ -27218,7 +30679,7 @@ $.noConflict = function() {
             if (w_paging.length > 0) {this.wrapperPagination = w_paging;}
             if (w_skip.length > 0) {this.wrapperSkip = w_skip;}
 
-            element.html("").addClass(o.clsTable);
+            element.addClass(o.clsTable);
 
             this._createTableHeader();
             this._createTableBody();
@@ -27273,6 +30734,11 @@ $.noConflict = function() {
             var skip_input = o.skipWrapper ? $(o.skipWrapper).find('.table-skip-input') : component.find(".table-skip-input");
             var customSearch;
             var id = element.attr("id");
+            var inspectorButton = component.find(".inspector-button");
+
+            inspectorButton.on(Metro.events.click, function(){
+                that.toggleInspector();
+            });
 
             skip_button.on(Metro.events.click, function(){
                 var skipTo = parseInt(skip_input.val().trim());
@@ -27283,11 +30749,12 @@ $.noConflict = function() {
                 }
 
                 skip_input.val('');
-                Utils.exec(o.onSkip, [skipTo, that.currentPage], element[0]);
-                element.fire("skip", {
+
+                that._fireEvent("skip", {
                     skipTo: skipTo,
                     skipFrom: that.currentPage
                 });
+
                 that.page(skipTo);
             });
 
@@ -27367,10 +30834,10 @@ $.noConflict = function() {
 
                 storage.setItem(store_key, data);
 
-                Utils.exec(o.onCheckClick, [status], this);
-                element.fire("checkclick", {
+                that._fireEvent("check-click", {
                     check: this,
-                    status: status
+                    status: status,
+                    data: data
                 });
             });
 
@@ -27378,6 +30845,7 @@ $.noConflict = function() {
                 var status = $(this).is(":checked");
                 var store_key = o.checkStoreKey.replace("$1", id);
                 var data = [];
+                var storage = Metro.storage;
 
                 if (status) {
                     $.each(that.filteredItems, function(){
@@ -27388,14 +30856,14 @@ $.noConflict = function() {
                     data = [];
                 }
 
-                Metro.storage.setItem(store_key, data);
+                storage.setItem(store_key, data);
 
                 that._draw();
 
-                Utils.exec(o.onCheckClickAll, [status], this);
-                element.fire("checkclickall", {
+                that._fireEvent("check-click-all", {
                     check: this,
-                    status: status
+                    status: status,
+                    data: data
                 });
             });
 
@@ -27597,15 +31065,16 @@ $.noConflict = function() {
         },
 
         _saveTableView: function(){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
             var view = this.view;
             var id = element.attr("id");
             var viewPath = o.viewSavePath.replace("$1", id);
+            var storage = Metro.storage;
 
             if (o.viewSaveMode.toLowerCase() === "client") {
-                Metro.storage.setItem(viewPath, view);
-                Utils.exec(o.onViewSave, [o.viewSavePath, view], element[0]);
-                element.fire("viewsave", {
+                storage.setItem(viewPath, view);
+
+                this._fireEvent("view-save", {
                     target: "client",
                     path: o.viewSavePath,
                     view: view
@@ -27617,20 +31086,23 @@ $.noConflict = function() {
                 };
                 $.post(viewPath, post_data)
                     .then(function(data){
-                        Utils.exec(o.onViewSave, [o.viewSavePath, view, post_data, data], element[0]);
-                        element.fire("viewsave", {
+
+                        that._fireEvent("view-save", {
                             target: "server",
                             path: o.viewSavePath,
                             view: view,
-                            post_data: post_data
+                            post_data: post_data,
+                            response: data
                         });
+
                     }, function(xhr){
-                        Utils.exec(o.onDataSaveError, [o.viewSavePath, post_data, xhr], element[0]);
-                        element.fire("datasaveerror", {
+
+                        that._fireEvent("data-save-error", {
                             source: o.viewSavePath,
                             xhr: xhr,
                             post_data: post_data
                         });
+
                     });
             }
         },
@@ -27653,7 +31125,7 @@ $.noConflict = function() {
                 start = stop = length = 0;
             }
 
-            text = o.tableInfoTitle;
+            text = o.tableInfoTitle || this.locale.table["info"];
             text = text.replace("$1", start);
             text = text.replace("$2", stop);
             text = text.replace("$3", length);
@@ -27670,14 +31142,14 @@ $.noConflict = function() {
                 current: this.currentPage,
                 target: Utils.isValue(this.wrapperPagination) ? this.wrapperPagination : component.find(".table-pagination"),
                 claPagination: o.clsPagination,
-                prevTitle: o.paginationPrevTitle,
-                nextTitle: o.paginationNextTitle,
+                prevTitle: o.paginationPrevTitle || this.locale.table["prev"],
+                nextTitle: o.paginationNextTitle || this.locale.table["next"],
                 distance: o.paginationShortMode === true ? o.paginationDistance : 0
             });
         },
 
         _filter: function(){
-            var that = this, o = this.options, element = this.element;
+            var that = this, o = this.options;
             var items;
             if ((Utils.isValue(this.searchString) && that.searchString.length >= o.searchMinLength) || this.filters.length > 0) {
                 items = this.items.filter(function(row){
@@ -27717,13 +31189,11 @@ $.noConflict = function() {
                     result = result && search_result;
 
                     if (result) {
-                        Utils.exec(o.onFilterRowAccepted, [row], element[0]);
-                        element.fire("filterrowaccepted", {
+                        that._fireEvent("filter-row-accepted", {
                             row: row
                         });
                     } else {
-                        Utils.exec(o.onFilterRowDeclined, [row], element[0]);
-                        element.fire("filterrowdeclined", {
+                        that._fireEvent("filter-row-declined", {
                             row: row
                         });
                     }
@@ -27735,8 +31205,7 @@ $.noConflict = function() {
                 items = this.items;
             }
 
-            Utils.exec(o.onSearch, [that.searchString, items], element[0]);
-            element.fire("search", {
+            this._fireEvent("search", {
                 search: that.searchString,
                 items: items
             });
@@ -27797,10 +31266,11 @@ $.noConflict = function() {
                     }
 
                     check.addClass("table-service-check");
-                    Utils.exec(o.onCheckDraw, [check], check[0]);
-                    element.fire("checkdraw", {
+
+                    this._fireEvent("check-draw", {
                         check: check
                     });
+
                     check.appendTo(td);
                     if (that.service[1].clsColumn !== undefined) {
                         td.addClass(that.service[1].clsColumn);
@@ -27816,7 +31286,7 @@ $.noConflict = function() {
                         var td = $("<td>");
 
                         if (Utils.isValue(that.heads[cell_index].template)) {
-                            val = that.heads[cell_index].template.replace("%VAL%", val);
+                            val = that.heads[cell_index].template.replace(/%VAL%/g, val);
                         }
 
                         td.html(val);
@@ -27837,8 +31307,8 @@ $.noConflict = function() {
                         td.data('original',this);
 
                         tds[view[cell_index]['index-view']] = td;
-                        Utils.exec(o.onDrawCell, [td, val, cell_index, that.heads[cell_index], cells], td[0]);
-                        element.fire("drawcell", {
+
+                        that._fireEvent("draw-cell", {
                             td: td,
                             val: val,
                             cellIndex: cell_index,
@@ -27854,16 +31324,15 @@ $.noConflict = function() {
 
                     for (j = 0; j < cells.length; j++){
                         tds[j].appendTo(tr);
-                        Utils.exec(o.onAppendCell, [tds[j], tr, j, element], tds[j][0]);
-                        element.fire("appendcell", {
+
+                        that._fireEvent("append-cell", {
                             td: tds[j],
                             tr: tr,
                             index: j
-                        })
+                        });
                     }
 
-                    Utils.exec(o.onDrawRow, [tr, that.view, that.heads, cells], tr[0]);
-                    element.fire("drawrow", {
+                    that._fireEvent("draw-row", {
                         tr: tr,
                         view: that.view,
                         heads: that.heads,
@@ -27872,8 +31341,7 @@ $.noConflict = function() {
 
                     tr.addClass(o.clsRow).addClass(is_even_row ? o.clsEvenRow : o.clsOddRow).appendTo(body);
 
-                    Utils.exec(o.onAppendRow, [tr, element], tr[0]);
-                    element.fire("appendrow", {
+                    that._fireEvent("append-row", {
                         tr: tr
                     });
                 }
@@ -27890,7 +31358,7 @@ $.noConflict = function() {
                     j++;
                 }
                 tr = $("<tr>").addClass(o.clsBodyRow).appendTo(body);
-                td = $("<td>").attr("colspan", j).addClass("text-center").html($("<span>").addClass(o.clsEmptyTableTitle).html(o.emptyTableTitle));
+                td = $("<td>").attr("colspan", j).addClass("text-center").html($("<span>").addClass(o.clsEmptyTableTitle).html(o.emptyTableTitle || that.locale.table["empty"]));
                 td.appendTo(tr);
             }
 
@@ -27899,12 +31367,10 @@ $.noConflict = function() {
 
             if (this.activity) this.activity.hide();
 
-            Utils.exec(o.onDraw, [element], element[0]);
-
-            element.fire("draw", element[0]);
+            this._fireEvent("draw");
 
             if (cb !== undefined) {
-                Utils.exec(cb, [element], element[0])
+                Utils.exec(cb, null, element[0])
             }
         },
 
@@ -28042,14 +31508,15 @@ $.noConflict = function() {
         },
 
         sorting: function(dir){
-            var that = this, element = this.element, o = this.options;
+            var that = this;
 
             if (Utils.isValue(dir)) {
                 this.sort.dir = dir;
             }
 
-            Utils.exec(o.onSortStart, [this.items], element[0]);
-            element.fire("sortstart", this.items);
+            this._fireEvent("sort-start", {
+                items: this.items
+            });
 
             this.items.sort(function(a, b){
                 var c1 = that._getItemContent(a);
@@ -28064,19 +31531,20 @@ $.noConflict = function() {
                 }
 
                 if (result !== 0) {
-                    Utils.exec(o.onSortItemSwitch, [a, b, result], element[0]);
-                    element.fire("sortitemswitch", {
+
+                    that._fireEvent("sort-item-switch", {
                         a: a,
                         b: b,
                         result: result
-                    })
+                    });
                 }
 
                 return result;
             });
 
-            Utils.exec(o.onSortStop, [this.items], element[0]);
-            element.fire("sortstop", this.items);
+            this._fireEvent("sort-stop", {
+                items: this.items
+            });
 
             return this;
         },
@@ -28183,8 +31651,7 @@ $.noConflict = function() {
             } else {
                 o.source = source;
 
-                Utils.exec(o.onDataLoad, [o.source], element[0]);
-                element.fire("dataload", {
+                this._fireEvent("data-load", {
                     source: o.source
                 });
 
@@ -28195,8 +31662,7 @@ $.noConflict = function() {
                         that.heads = [];
                         that.foots = [];
 
-                        Utils.exec(o.onDataLoaded, [o.source, data], element[0]);
-                        element.fire("dataloaded", {
+                        that._fireEvent("data-loaded", {
                             source: o.source,
                             data: data
                         });
@@ -28213,11 +31679,10 @@ $.noConflict = function() {
                         that._rebuild(review);
                     }, function(xhr){
                         that.activity.hide();
-                        Utils.exec(o.onDataLoadError, [o.source, xhr], element[0]);
-                        element.fire("dataloaderror", {
+                        that._fireEvent("data-load-error", {
                             source: o.source,
                             xhr: xhr
-                        })
+                        });
                     });
                 });
 
@@ -28424,6 +31889,7 @@ $.noConflict = function() {
         },
 
         export: function(to, mode, filename, options){
+            var Export = Metro.export;
             var that = this, o = this.options;
             var table = document.createElement("table");
             var head = $("<thead>").appendTo(table);
@@ -28626,19 +32092,6 @@ $.noConflict = function() {
             });
         },
 
-        _applyColor: function(to, color, option){
-
-            to = $(to);
-
-            if (Utils.isValue(color)) {
-                if (Utils.isColor(color)) {
-                    to.css(option, color);
-                } else {
-                    to.addClass(color);
-                }
-            }
-        },
-
         _createStructure: function(){
             var element = this.element, o = this.options;
             var tabs = element.find("li"), active_tab = element.find("li.active");
@@ -28691,14 +32144,12 @@ $.noConflict = function() {
             });
 
             element.on(Metro.events.scroll, function(){
-                var oldScroll = this.scroll;
+                var oldScroll = that.scroll;
 
-                this.scrollDir = this.scroll < element[0].scrollLeft ? "left" : "right";
-                this.scroll = element[0].scrollLeft;
+                that.scrollDir = that.scroll < element[0].scrollLeft ? "left" : "right";
+                that.scroll = element[0].scrollLeft;
 
-                Utils.exec(o.onTabsScroll, [element[0].scrollLeft, oldScroll, this.scrollDir], element[0]);
-
-                element.fire("tabsscroll", {
+                that._fireEvent("tabs-scroll", {
                     scrollLeft: element[0].scrollLeft,
                     oldScroll: oldScroll,
                     scrollDir: that.scrollDir
@@ -28793,8 +32244,8 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
     var Utils = Metro.utils;
-    var Colors = Metro.colors;
     var TabsDefaultConfig = {
         tabsDeferred: 0,
         expand: false,
@@ -28871,7 +32322,7 @@ $.noConflict = function() {
                     $("<span>").addClass("line").appendTo(hamburger);
                 }
 
-                if (Colors.isLight(Utils.computedRgbToHex(Utils.getStyleOne(container, "background-color"))) === true) {
+                if (Metro.colors.isLight(Utils.getStyleOne(container, "background-color")) === true) {
                     hamburger.addClass("dark");
                 }
             }
@@ -29009,10 +32460,9 @@ $.noConflict = function() {
 
             tab.addClass(o.clsTabsListItemActive);
 
-            Utils.exec(o.onTab, [tab[0]], element[0]);
-            element.fire("tab", {
+            this._fireEvent("tab", {
                 tab: tab[0]
-            })
+            });
         },
 
         next: function(){
@@ -29070,9 +32520,18 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
-    var Colors = Metro.colors;
+
     var Utils = Metro.utils;
     var TagInputDefaultConfig = {
+        autocomplete: null,
+        autocompleteUnique: true,
+        autocompleteUrl: null,
+        autocompleteUrlMethod: "GET",
+        autocompleteUrlKey: null,
+        autocompleteDivider: ",",
+        autocompleteListHeight: 200,
+
+        label: "",
         size: "normal",
         taginputDeferred: 0,
         static: false,
@@ -29091,6 +32550,8 @@ $.noConflict = function() {
         clsTag: "",
         clsTagTitle: "",
         clsTagRemover: "",
+        clsLabel: "",
+
         onBeforeTagAdd: Metro.noop_true,
         onTagAdd: Metro.noop,
         onBeforeTagRemove: Metro.noop_true,
@@ -29113,7 +32574,8 @@ $.noConflict = function() {
         init: function( options, elem ) {
             this._super(elem, options, TagInputDefaultConfig, {
                 values: [],
-                triggers: []
+                triggers: [],
+                autocomplete: []
             });
 
             return this;
@@ -29167,6 +32629,16 @@ $.noConflict = function() {
                 })
             }
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(container);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (element.is(":disabled")) {
                 this.disable();
             } else {
@@ -29176,12 +32648,50 @@ $.noConflict = function() {
             if (o.static === true || element.attr("readonly") !== undefined) {
                 container.addClass("static-mode");
             }
+
+            if (!Utils.isNull(o.autocomplete) || !Utils.isNull(o.autocompleteUrl)) {
+                $("<div>").addClass("autocomplete-list").css({
+                    maxHeight: o.autocompleteListHeight,
+                    display: "none"
+                }).appendTo(container);
+            }
+
+            if (Utils.isValue(o.autocomplete)) {
+                var autocomplete_obj = Utils.isObject(o.autocomplete);
+
+                if (autocomplete_obj !== false) {
+                    this.autocomplete = autocomplete_obj;
+                } else {
+                    this.autocomplete = o.autocomplete.toArray(o.autocompleteDivider);
+                }
+            }
+
+            if (Utils.isValue(o.autocompleteUrl)) {
+                $.ajax({
+                    url: o.autocompleteUrl,
+                    method: o.autocompleteUrlMethod
+                }).then(function(response){
+                    var newData = [];
+
+                    try {
+                        newData = JSON.parse(response);
+                        if (o.autocompleteUrlKey) {
+                            newData = newData[o.autocompleteUrlKey];
+                        }
+                    } catch (e) {
+                        newData = response.split("\n");
+                    }
+
+                    that.autocomplete = that.autocomplete.concat(newData);
+                });
+            }
         },
 
         _createEvents: function(){
             var that = this, element = this.element, o = this.options;
             var container = element.closest(".tag-input");
             var input = container.find(".input-wrapper");
+            var autocompleteList = container.find(".autocomplete-list");
 
             input.on(Metro.events.focus, function(){
                 container.addClass("focused");
@@ -29216,8 +32726,7 @@ $.noConflict = function() {
                     return ;
                 }
 
-                Utils.exec(o.onTagTrigger, [key], element[0]);
-                element.fire("tagtrigger", {
+                that._fireEvent("tag-trigger", {
                     key: key
                 });
 
@@ -29247,10 +32756,75 @@ $.noConflict = function() {
             container.on(Metro.events.click, ".input-clear-button", function(){
                 var val = element.val();
                 that.clear();
-                Utils.exec(o.onClear, [val], element[0]);
-                element.fire("clear", {
+
+                that._fireEvent("clear", {
                     val: val
                 });
+            });
+
+            input.on(Metro.events.input, function(){
+                var val = this.value.toLowerCase();
+                that._drawAutocompleteList(val);
+            });
+
+            container.on(Metro.events.click, ".autocomplete-list .item", function(){
+                var val = $(this).attr("data-autocomplete-value");
+
+                input.val("");
+                that._addTag(val);
+                input.attr("size", 1);
+
+                autocompleteList.css({
+                    display: "none"
+                });
+                that._fireEvent("autocomplete-select", {
+                    value: val
+                });
+            });
+        },
+
+        _drawAutocompleteList: function(val){
+            var that = this, element = this.element, o = this.options;
+            var container = element.closest(".tag-input");
+            var input = container.find(".input-wrapper");
+            var autocompleteList = container.find(".autocomplete-list");
+            var items;
+
+            if (autocompleteList.length === 0) {
+                return;
+            }
+
+            autocompleteList.html("");
+
+            items = this.autocomplete.filter(function(item){
+                return item.toLowerCase().indexOf(val) > -1;
+            });
+
+            autocompleteList.css({
+                display: items.length > 0 ? "block" : "none",
+                left: input.position().left
+            });
+
+            $.each(items, function(){
+                if (o.autocompleteUnique && that.values.indexOf(this) !== -1) {
+                    return ;
+                }
+
+                var v = this;
+                var index = v.toLowerCase().indexOf(val), content;
+                var item = $("<div>").addClass("item").attr("data-autocomplete-value", v);
+
+                if (index === 0) {
+                    content = "<strong>"+v.substr(0, val.length)+"</strong>"+v.substr(val.length);
+                } else {
+                    content = v.substr(0, index) + "<strong>"+v.substr(index, val.length)+"</strong>"+v.substr(index + val.length);
+                }
+
+                item.html(content).appendTo(autocompleteList);
+
+                that._fireEvent("draw-autocomplete-item", {
+                    item: item
+                })
             });
         },
 
@@ -29299,11 +32873,11 @@ $.noConflict = function() {
             remover.appendTo(tag);
 
             if (o.randomColor === true) {
-                var colors = Colors.colors(Colors.PALETTES.ALL), bg, fg, bg_r;
+                var colors = Metro.colors.colors(Metro.colors.PALETTES.ALL), bg, fg, bg_r;
 
                 bg = colors[$.random(0, colors.length - 1)];
-                bg_r = Colors.darken(bg, 15);
-                fg = Colors.isDark(bg) ? "#ffffff" : "#000000";
+                bg_r = Metro.colors.darken(bg, 15);
+                fg = Metro.colors.isDark(bg) ? "#ffffff" : "#000000";
 
                 tag.css({
                     backgroundColor: bg,
@@ -29318,15 +32892,13 @@ $.noConflict = function() {
             this.values.push(val);
             element.val(this.values.join(o.tagSeparator));
 
-            Utils.exec(o.onTagAdd, [tag[0], val, this.values], element[0]);
-            element.fire("tagadd", {
+            this._fireEvent("tag-add", {
                 tag: tag[0],
                 val: val,
                 values: this.values
             });
 
-            Utils.exec(o.onTag, [tag[0], val, this.values], element[0]);
-            element.fire("tag", {
+            this._fireEvent("tag", {
                 tag: tag[0],
                 val: val,
                 values: this.values
@@ -29344,15 +32916,13 @@ $.noConflict = function() {
             Utils.arrayDelete(this.values, val);
             element.val(this.values.join(o.tagSeparator));
 
-            Utils.exec(o.onTagRemove, [tag[0], val, this.values], element[0]);
-            element.fire("tagremove", {
+            this._fireEvent("tag-remove", {
                 tag: tag[0],
                 val: val,
                 values: this.values
             });
 
-            Utils.exec(o.onTag, [tag[0], val, this.values], element[0]);
-            element.fire("tag", {
+            this._fireEvent("tag", {
                 tag: tag[0],
                 val: val,
                 values: this.values
@@ -29366,19 +32936,49 @@ $.noConflict = function() {
         },
 
         val: function(v){
-            var that = this, o = this.options;
+            var that = this, element = this.element, o = this.options;
+            var container = element.closest(".tag-input");
+            var newValues = [];
 
             if (!Utils.isValue(v)) {
                 return this.tags();
             }
 
             this.values = [];
+            container.find(".tag").remove();
 
-            if (Utils.isValue(v)) {
-                $.each((""+v).toArray(o.tagSeparator), function(){
-                    that._addTag(this);
-                })
+            if (typeof v === "string") {
+                newValues = (""+v).toArray(o.tagSeparator);
+            } else {
+                if (Array.isArray(v)) {
+                    newValues = v;
+                }
             }
+
+            $.each(newValues, function(){
+                that._addTag(this);
+            });
+
+            return this;
+        },
+
+        append: function(v){
+            var that = this, o = this.options;
+            var newValues = this.values;
+
+            if (typeof v === "string") {
+                newValues = (""+v).toArray(o.tagSeparator);
+            } else {
+                if (Array.isArray(v)) {
+                    newValues = v;
+                }
+            }
+
+            $.each(newValues, function(){
+                that._addTag(this);
+            });
+
+            return this;
         },
 
         clear: function(){
@@ -29390,6 +32990,8 @@ $.noConflict = function() {
             element.val("").trigger("change");
 
             container.find(".tag").remove();
+
+            return this;
         },
 
         disable: function(){
@@ -29427,6 +33029,15 @@ $.noConflict = function() {
             }
         },
 
+        setAutocompleteList: function(l){
+            var autocomplete_list = Utils.isObject(l);
+            if (autocomplete_list !== false) {
+                this.autocomplete = autocomplete_list;
+            } else if (typeof l === "string") {
+                this.autocomplete = l.toArray(this.options.autocompleteDivider);
+            }
+        },
+
         changeAttribute: function(attributeName){
             var that = this, element = this.element, o = this.options;
 
@@ -29460,12 +33071,19 @@ $.noConflict = function() {
             return element;
         }
     });
+
+    $(document).on(Metro.events.click, function(){
+        $('.tag-input .autocomplete-list').hide();
+    });
+
 }(Metro, m4q));
 
 (function(Metro, $) {
     'use strict';
+
     var Utils = Metro.utils;
-    Metro.template = function(html, options, conf) {
+
+    var Engine = function(html, options, conf) {
         var ReEx, re = '<%(.+?)%>',
             reExp = /(^( )?(var|if|for|else|switch|case|break|{|}|;))(.*)?/g,
             code = 'with(obj) { var r=[];\n',
@@ -29503,13 +33121,7 @@ $.noConflict = function() {
         catch(err) { console.error("'" + err.message + "'", " in \n\nCode:\n", code, "\n"); }
         return result;
     };
-}(Metro, m4q));
 
-(function(Metro, $) {
-    'use strict';
-
-    var Utils = Metro.utils;
-    var Tpl = Metro.template;
     var TemplateDefaultConfig = {
         templateData: null,
         onTemplateCompile: Metro.noop,
@@ -29543,7 +33155,7 @@ $.noConflict = function() {
                 .replace(/(&lt;)/gm, "<")
                 .replace(/(&gt;)/gm, ">");
 
-            compiled = Tpl(template, this.data);
+            compiled = Engine(template, this.data);
             element.html(compiled);
 
             this._fireEvent('template-compile', {
@@ -29584,12 +33196,15 @@ $.noConflict = function() {
             return this.element;
         }
     });
+
+    Metro.template = Engine;
 }(Metro, m4q));
 
 (function(Metro, $) {
     'use strict';
     var Utils = Metro.utils;
     var TextareaDefaultConfig = {
+        label: "",
         textareaDeferred: 0,
         charsCounter: null,
         charsCounterTemplate: "$1",
@@ -29600,10 +33215,12 @@ $.noConflict = function() {
         clearButton: true,
         clearButtonIcon: "<span class='default-icon-cross'></span>",
         autoSize: true,
+        maxHeight: 0,
         clsPrepend: "",
         clsAppend: "",
         clsComponent: "",
         clsTextarea: "",
+        clsLabel: "",
         onChange: Metro.noop,
         onTextareaCreate: Metro.noop
     };
@@ -29679,6 +33296,16 @@ $.noConflict = function() {
             container.addClass(o.clsComponent);
             element.addClass(o.clsTextarea);
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(container);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
+
             if (element.is(':disabled')) {
                 this.disable();
             } else {
@@ -29688,7 +33315,6 @@ $.noConflict = function() {
             fakeTextarea.val(element.val());
 
             if (o.autoSize === true) {
-
                 container.addClass("autosize no-scroll-vertical");
 
                 setTimeout(function(){
@@ -29725,23 +33351,33 @@ $.noConflict = function() {
                         chars_counter.html(o.charsCounterTemplate.replace("$1", that.length()));
                     }
                 }
-                Utils.exec(o.onChange, [element.val(), that.length()], element[0]);
-                element.fire("change", {
+
+                that._fireEvent("change", {
                     val: element.val(),
                     length: that.length()
                 });
+
             })
         },
 
         resize: function(){
-            var element = this.element,
+            var element = this.element, o = this.options,
                 textarea = element.closest(".textarea"),
-                fakeTextarea = textarea.find(".fake-textarea");
+                fakeTextarea = textarea.find(".fake-textarea"),
+                currentHeight = fakeTextarea[0].scrollHeight;
+
+            if (o.maxHeight && currentHeight >= o.maxHeight) {
+                textarea.removeClass("no-scroll-vertical");
+                return ;
+            }
+
+            if (o.maxHeight && currentHeight < o.maxHeight) {
+                textarea.addClass("no-scroll-vertical");
+            }
 
             fakeTextarea[0].style.cssText = 'height:auto;';
             fakeTextarea[0].style.cssText = 'height:' + fakeTextarea[0].scrollHeight + 'px';
             element[0].style.cssText = 'height:' + fakeTextarea[0].scrollHeight + 'px';
-
         },
 
         clear: function(){
@@ -29817,7 +33453,7 @@ $.noConflict = function() {
         effectDuration: 500,
         target: null,
         canTransform: true,
-        onClick: Metro.noop,
+        onTileClick: Metro.noop,
         onTileCreate: Metro.noop
     };
 
@@ -29927,7 +33563,7 @@ $.noConflict = function() {
 
                 $.setInterval(function(){
                     var temp = that.images.slice();
-                    var bg = Utils.randomColor();
+                    var bg = Metro.colors.random();
 
                     element.css("background-color", bg);
 
@@ -29958,19 +33594,9 @@ $.noConflict = function() {
 
                 next = that.slides[that.currentSlide];
 
-                
                 if (effects.includes(o.effect)) {
                     Metro.animations[o.effect.camelCase()]($(current), $(next), {duration: o.effectDuration});
                 }
-
-                // if (o.effect === "slide-up") Metro.animations.slideUp($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "slide-down") Metro.animations.slideDown($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "slide-left") Metro.animations.slideLeft($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "slide-right") Metro.animations.slideRight($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "fade") Metro.animations.fade($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "zoom") Metro.animations.zoom($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "swirl") Metro.animations.swirl($(current), $(next), {duration: o.effectDuration});
-                // if (o.effect === "switch") Metro.animations.swirl($(current), $(next), {duration: o.effectDuration});
 
             }, o.effectInterval);
         },
@@ -29993,7 +33619,7 @@ $.noConflict = function() {
         },
 
         _createEvents: function(){
-            var element = this.element, o = this.options;
+            var that = this, element = this.element, o = this.options;
 
             element.on(Metro.events.startAll, function(e){
                 var tile = $(this);
@@ -30022,8 +33648,7 @@ $.noConflict = function() {
                         }, 100);
                     }
 
-                    Utils.exec(o.onClick, [side], element[0]);
-                    element.fire("click", {
+                    that._fireEvent("tile-click", {
                         side: side
                     });
                 }
@@ -30057,6 +33682,7 @@ $.noConflict = function() {
     'use strict';
     var Utils = Metro.utils;
     var TimePickerDefaultConfig = {
+        label: "",
         timepickerDeferred: 0,
         hoursStep: 1,
         minutesStep: 1,
@@ -30075,6 +33701,10 @@ $.noConflict = function() {
         clsHours: "",
         clsMinutes: "",
         clsSeconds: "",
+        clsLabel: "",
+        clsButton: "",
+        clsOkButton: "",
+        clsCancelButton: "",
         okButtonIcon: "<span class='default-icon-check'></span>",
         cancelButtonIcon: "<span class='default-icon-cross'></span>",
         onSet: Metro.noop,
@@ -30103,7 +33733,8 @@ $.noConflict = function() {
                     hours: null,
                     minutes: null,
                     seconds: null
-                }
+                },
+                id: Utils.elementId("time-picker")
             });
 
             return this;
@@ -30176,20 +33807,20 @@ $.noConflict = function() {
             var picker, hours, minutes, seconds, i;
             var timeWrapper, selectWrapper, selectBlock, actionBlock;
 
-            var prev = element.prev();
-            var parent = element.parent();
-            var id = Utils.elementId("time-picker");
+            picker = $("<div>").addClass("wheel-picker time-picker " + element[0].className).addClass(o.clsPicker);
 
-            picker = $("<div>").attr("id", id).addClass("wheel-picker time-picker " + element[0].className).addClass(o.clsPicker);
-
-            if (prev.length === 0) {
-                parent.prepend(picker);
-            } else {
-                picker.insertAfter(prev);
-            }
-
+            picker.insertBefore(element);
             element.attr("readonly", true).appendTo(picker);
 
+            if (o.label) {
+                var label = $("<label>").addClass("label-for-input").addClass(o.clsLabel).html(o.label).insertBefore(picker);
+                if (element.attr("id")) {
+                    label.attr("for", element.attr("id"));
+                }
+                if (element.attr("dir") === "rtl") {
+                    label.addClass("rtl");
+                }
+            }
 
             timeWrapper = $("<div>").addClass("time-wrapper").appendTo(picker);
 
@@ -30234,8 +33865,8 @@ $.noConflict = function() {
             selectBlock.height((o.distance * 2 + 1) * 40);
 
             actionBlock = $("<div>").addClass("action-block").appendTo(selectWrapper);
-            $("<button>").attr("type", "button").addClass("button action-ok").html(o.okButtonIcon).appendTo(actionBlock);
-            $("<button>").attr("type", "button").addClass("button action-cancel").html(o.cancelButtonIcon).appendTo(actionBlock);
+            $("<button>").attr("type", "button").addClass("button action-ok").addClass(o.clsButton).addClass(o.clsOkButton).html(o.okButtonIcon).appendTo(actionBlock);
+            $("<button>").attr("type", "button").addClass("button action-cancel").addClass(o.clsButton).addClass(o.clsCancelButton).html(o.cancelButtonIcon).appendTo(actionBlock);
 
 
             element[0].className = '';
@@ -30247,6 +33878,10 @@ $.noConflict = function() {
 
             if (o.showLabels === true) {
                 picker.addClass("show-labels");
+            }
+
+            if (element.prop("disabled")) {
+                picker.addClass("disabled");
             }
 
             this.picker = picker;
@@ -30270,12 +33905,12 @@ $.noConflict = function() {
                     target.scrollTop -= o.scrollSpeed * (pageY  > Utils.pageXY(e).y ? -1 : 1);
 
                     pageY = Utils.pageXY(e).y;
-                }, {ns: picker.attr("id")});
+                }, {ns: that.id});
 
                 $(document).on(Metro.events.stop, function(){
-                    $(document).off(Metro.events.move, {ns: picker.attr("id")});
-                    $(document).off(Metro.events.stop, {ns: picker.attr("id")});
-                }, {ns: picker.attr("id")});
+                    $(document).off(Metro.events.move, {ns: that.id});
+                    $(document).off(Metro.events.stop, {ns: that.id});
+                }, {ns: that.id});
             });
 
             picker.on(Metro.events.click, function(e){
@@ -30311,31 +33946,44 @@ $.noConflict = function() {
                 var part = this, list = picker.find(".sel-"+part);
 
                 list.on("scroll", function(){
-                    if (that.isOpen) {
-                        if (that.listTimer[part]) {
-                            clearTimeout(that.listTimer[part]);
-                            that.listTimer[part] = null;
+                    if (!that.isOpen) {
+                        return ;
+                    }
+
+                    if (that.listTimer[part]) {
+                        clearTimeout(that.listTimer[part]);
+                        that.listTimer[part] = null;
+                    }
+
+                    if (!that.listTimer[part]) that.listTimer[part] = setTimeout(function () {
+
+                        var target, targetElement, scrollTop;
+
+                        that.listTimer[part] = null;
+
+                        target = Math.round((Math.ceil(list.scrollTop()) / 40));
+
+                        if (part === "hours" && o.hoursStep) {
+                            target *= parseInt(o.hoursStep);
+                        }
+                        if (part === "minutes" && o.minutesStep) {
+                            target *= parseInt(o.minutesStep);
+                        }
+                        if (part === "seconds" && o.secondsStep) {
+                            target *= parseInt(o.secondsStep);
                         }
 
-                        if (!that.listTimer[part]) that.listTimer[part] = setTimeout(function () {
+                        targetElement = list.find(".js-" + part + "-" + target);
+                        scrollTop = targetElement.position().top - (o.distance * 40);
 
-                            var target, targetElement, scrollTop;
+                        list.find(".active").removeClass("active");
 
-                            that.listTimer[part] = null;
+                        list[0].scrollTop = scrollTop;
+                        targetElement.addClass("active");
+                        Utils.exec(o.onScroll, [targetElement, list, picker], list[0]);
 
-                            target = Math.round((Math.ceil(list.scrollTop()) / 40));
+                    }, scrollLatency);
 
-                            targetElement = list.find(".js-" + part + "-" + target);
-                            scrollTop = targetElement.position().top - (o.distance * 40);
-
-                            list.find(".active").removeClass("active");
-
-                            list[0].scrollTop = scrollTop;
-                            targetElement.addClass("active");
-                            Utils.exec(o.onScroll, [targetElement, list, picker], list[0]);
-
-                        }, scrollLatency);
-                    }
                 })
             });
         },
@@ -30369,15 +34017,15 @@ $.noConflict = function() {
 
             element.val([h, m, s].join(":")).trigger("change");
 
-            Utils.exec(o.onSet, [this.value, element.val()], element[0]);
-            element.fire("set", {
+            this._fireEvent("set", {
                 val: this.value,
                 elementVal: element.val()
             });
+
         },
 
         open: function(){
-            var element = this.element, o = this.options;
+            var o = this.options;
             var picker = this.picker;
             var h, m, s;
             var h_list, m_list, s_list;
@@ -30433,18 +34081,18 @@ $.noConflict = function() {
 
             this.isOpen = true;
 
-            Utils.exec(o.onOpen, [this.value], element[0]);
-            element.fire("open", {
+            this._fireEvent("open", {
                 val: this.value
             });
+
         },
 
         close: function(){
-            var picker = this.picker, o = this.options, element = this.element;
+            var picker = this.picker;
             picker.find(".select-wrapper").hide(0);
             this.isOpen = false;
-            Utils.exec(o.onClose, [this.value], element[0]);
-            element.fire("close", {
+
+            this._fireEvent("close", {
                 val: this.value
             });
         },
@@ -30503,15 +34151,32 @@ $.noConflict = function() {
             this._set();
         },
 
-        changeAttribute: function(attributeName){
-            var that = this, element = this.element;
+        disable: function(){
+            this.element.data("disabled", true);
+            this.element.parent().addClass("disabled");
+        },
 
-            var changeValueAttribute = function(){
-                that.val(element.attr("data-value"));
-            };
+        enable: function(){
+            this.element.data("disabled", false);
+            this.element.parent().removeClass("disabled");
+        },
 
-            if (attributeName === "data-value") {
-                changeValueAttribute();
+        toggleState: function(){
+            if (this.elem.disabled) {
+                this.disable();
+            } else {
+                this.enable();
+            }
+        },
+
+        changeAttribute: function(attr, newValue){
+            switch (attr) {
+                case "data-value":
+                    this.val(newValue);
+                    break;
+                case "disabled":
+                    this.toggleState();
+                    break;
             }
         },
 
@@ -30620,6 +34285,118 @@ $.noConflict = function() {
 
     Metro['toast'] = Toast;
     Metro['createToast'] = Toast.create;
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
+
+    var TokenizerDefaultConfig = {
+        textToTokenize: "",
+        spaceSymbol: "",
+        spaceClass: "space",
+        tokenClass: "",
+        splitter: "",
+        tokenElement: "span",
+        useTokenSymbol: true,
+        useTokenIndex: true,
+        clsTokenizer: "",
+        clsToken: "",
+        clsTokenOdd: "",
+        clsTokenEven: "",
+        onTokenCreate: Metro.noop,
+        onTokenize: Metro.noop,
+        onTokenizerCreate: Metro.noop
+    };
+
+    Metro.tokenizerSetup = function (options) {
+        TokenizerDefaultConfig = $.extend({}, TokenizerDefaultConfig, options);
+    };
+
+    if (typeof window["metroTokenizerSetup"] !== undefined) {
+        Metro.tokenizerSetup(window["metroTokenizerSetup"]);
+    }
+
+    Metro.Component('tokenizer', {
+        init: function( options, elem ) {
+            this._super(elem, options, TokenizerDefaultConfig, {
+                // define instance vars here
+                originalText: ""
+            });
+            return this;
+        },
+
+        _create: function(){
+            var element = this.element, o = this.options;
+            this.originalText = o.textToTokenize ? o.textToTokenize.trim() : element.text().trim().replace(/[\r\n\t]/gi, '').replace(/\s\s+/g, " ");
+
+            this._createStructure();
+            this._fireEvent('tokenizer-create');
+        },
+
+        _tokenize: function(){
+            var that = this, element = this.element, o = this.options;
+            var index = 0, append, prepend;
+
+            element.clear().attr("aria-label", this.originalText);
+
+            $.each(this.originalText.split(o.splitter), function(i){
+                var symbol = this;
+                var isSpace = symbol === " ";
+                var token;
+
+                token = $("<"+o.tokenElement+">")
+                    .html(isSpace ? o.spaceSymbol : symbol)
+                    .attr("aria-hidden", true)
+                    .addClass(isSpace ? o.spaceClass : "")
+                    .addClass(isSpace && o.useTokenSymbol ? "" : "ts-"+symbol.replace(" ", "_"))
+                    .addClass(isSpace && o.useTokenIndex ? "" : "ti-" + (i + 1))
+                    .addClass(o.tokenClass ? o.tokenClass : "")
+                    .addClass(!isSpace ? o.clsToken : "");
+
+                if (!isSpace) {
+                    index++;
+                    token.addClass(index % 2 === 0 ? "te-even" : "te-odd");
+                    token.addClass(index % 2 === 0 ? o.clsTokenEven : o.clsTokenOdd);
+                }
+
+                if (o.prepend) {
+                    prepend = $.isSelector(o.prepend) ? $(o.prepend) : $("<span>").html(o.prepend);
+                    token.prepend(prepend);
+                }
+
+                if (o.append) {
+                    append = $.isSelector(o.append) ? $(o.append) : $("<span>").html(o.append);
+                    token.append(append);
+                }
+
+                element.append(token);
+
+                that._fireEvent("token-create", {
+                    token: token[0]
+                });
+            });
+
+            that._fireEvent("tokenize", {
+                tokens: element.children().items(),
+                originalText: this.originalText
+            });
+        },
+
+        _createStructure: function(){
+            var element = this.element,  o = this.options;
+            element.addClass(o.clsTokenizer);
+            this._tokenize();
+        },
+
+        tokenize: function(v){
+            this.originalText = v;
+            this._tokenize();
+        },
+
+        destroy: function(){
+            this.element.remove();
+        }
+    });
 }(Metro, m4q));
 
 (function(Metro, $) {
@@ -31912,7 +35689,7 @@ $.noConflict = function() {
         },
 
         _createEvents: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
 
             element.on(Metro.events.click, ".node-toggle", function(e){
                 var toggle = $(this);
@@ -31928,8 +35705,7 @@ $.noConflict = function() {
 
                 that.current(node);
 
-                Utils.exec(o.onNodeClick, [node[0]], element[0]);
-                element.fire("nodeclick", {
+                that._fireEvent("node-click", {
                     node: node[0]
                 });
 
@@ -31945,10 +35721,9 @@ $.noConflict = function() {
                     that.toggleNode(node);
                 }
 
-                Utils.exec(o.onNodeDblClick, [node[0]], element[0]);
-                element.fire("nodedblclick", {
+                that._fireEvent("node-dbl-click", {
                     node: node[0]
-                });
+                })
 
                 e.preventDefault();
             });
@@ -31960,8 +35735,7 @@ $.noConflict = function() {
 
                 that.current(node);
 
-                Utils.exec(o.onRadioClick, [checked, check[0], node[0]], element[0]);
-                element.fire("radioclick", {
+                that._fireEvent("radio-click", {
                     checked: checked,
                     check: check[0],
                     node: node[0]
@@ -31975,8 +35749,7 @@ $.noConflict = function() {
 
                 that._recheck(check);
 
-                Utils.exec(o.onCheckClick, [checked, check[0], node[0]], element[0]);
-                element.fire("checkclick", {
+                that._fireEvent("check-click", {
                     checked: checked,
                     check: check[0],
                     node: node[0]
@@ -32047,7 +35820,7 @@ $.noConflict = function() {
 
         toggleNode: function(n){
             var node = $(n);
-            var element = this.element, o = this.options;
+            var o = this.options;
             var func;
             var toBeExpanded = !node.data("collapsed");//!node.hasClass("expanded");
 
@@ -32057,22 +35830,24 @@ $.noConflict = function() {
             func = toBeExpanded === true ? "slideUp" : "slideDown";
 
             if (!toBeExpanded) {
-                Utils.exec(o.onExpandNode, [node[0]], element[0]);
-                element.fire("expandnode", {
+
+                this._fireEvent("expand-node", {
                     node: node[0]
                 });
+
             } else {
-                Utils.exec(o.onCollapseNode, [node[0]], element[0]);
-                element.fire("collapsenode", {
+
+                this._fireEvent("collapse-node", {
                     node: node[0]
                 });
+
             }
 
             node.children("ul")[func](o.duration);
         },
 
         addTo: function(node, data){
-            var element = this.element, o = this.options;
+            var element = this.element;
             var target;
             var new_node;
             var toggle;
@@ -32094,8 +35869,7 @@ $.noConflict = function() {
 
             new_node.appendTo(target);
 
-            Utils.exec(o.onNodeInsert, [new_node[0], node ? node[0] : null], element[0]);
-            element.fire("nodeinsert", {
+            this._fireEvent("node-insert", {
                 node: new_node[0],
                 parent: node ? node[0] : null
             });
@@ -32104,7 +35878,6 @@ $.noConflict = function() {
         },
 
         insertBefore: function(node, data){
-            var element = this.element, o = this.options;
             var new_node = this._createNode(data);
 
             if (Utils.isNull(node)) {
@@ -32113,16 +35886,16 @@ $.noConflict = function() {
 
             node = $(node);
             new_node.insertBefore(node);
-            Utils.exec(o.onNodeInsert, [new_node[0], node[0]], element[0]);
-            element.fire("nodeinsert", {
+
+            this._fireEvent("node-insert", {
                 node: new_node[0],
                 parent: node ? node[0] : null
             });
+
             return new_node;
         },
 
         insertAfter: function(node, data){
-            var element = this.element, o = this.options;
             var new_node = this._createNode(data);
 
             if (Utils.isNull(node)) {
@@ -32131,22 +35904,22 @@ $.noConflict = function() {
 
             node = $(node);
             new_node.insertAfter(node);
-            Utils.exec(o.onNodeInsert, [new_node[0], node[0]], element[0]);
-            element.fire("nodeinsert", {
+
+            this._fireEvent("node-insert", {
                 node: new_node[0],
                 parent: node[0]
             });
+
             return new_node;
         },
 
         del: function(node){
-            var element = this.element, o = this.options;
+            var element = this.element;
             node = $(node);
             var parent_list = node.closest("ul");
             var parent_node = parent_list.closest("li");
 
-            Utils.exec(o.onNodeDelete, [node[0]], element[0]);
-            element.fire("nodedelete", {
+            this._fireEvent("node-delete", {
                 node: node[0]
             });
 
@@ -32160,13 +35933,12 @@ $.noConflict = function() {
         },
 
         clean: function(node){
-            var element = this.element, o = this.options;
             node = $(node);
             node.children("ul").remove();
             node.removeClass("expanded");
             node.children(".node-toggle").remove();
-            Utils.exec(o.onNodeClean, [node[0]], element[0]);
-            element.fire("nodeclean", {
+
+            this._fireEvent("node-clean", {
                 node: node[0]
             });
         },
@@ -32190,8 +35962,8 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
     var Utils = Metro.utils;
-    var Colors = Metro.colors;
     var ValidatorFuncs = {
         required: function(val){
             if (Array.isArray(val)) {
@@ -32255,7 +36027,8 @@ $.noConflict = function() {
         },
         url: function(val){
             /* eslint-disable-next-line */
-            return /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,}))\.?)(?::\d{2,5})?(?:[/?#]\S*)?$/i.test(val);
+            var regexp    = /^(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u00a1-\uffff][a-z0-9\u00a1-\uffff_-]{0,62})?[a-z0-9\u00a1-\uffff]\.)+(?:[a-z\u00a1-\uffff]{2,}\.?))(?::\d{2,5})?(?:[/?#]\S*)?$/i;
+            return regexp.test(val);
         },
         date: function(val, format, locale){
             if (Utils.isNull(format)) {
@@ -32282,7 +36055,7 @@ $.noConflict = function() {
         },
         color: function(val){
             if (!Utils.isValue(val)) return false;
-            return Colors.color(val, Colors.PALETTES.STANDARD) !== false;
+            return Metro.colors.color(val, Metro.colors.PALETTES.STANDARD) !== false || Metro.colors.isColor(Metro.colors.parse(val));
         },
         pattern: function(val, pat){
             if (!Utils.isValue(val)) return false;
@@ -32372,6 +36145,7 @@ $.noConflict = function() {
             var funcs = input.data('validate') !== undefined ? String(input.data('validate')).split(" ").map(function(s){return s.trim();}) : [];
             var errors = [];
             var hasForm = input.closest('form').length > 0;
+            var attr_name, radio_checked;
 
             if (funcs.length === 0) {
                 return true;
@@ -32394,13 +36168,16 @@ $.noConflict = function() {
                     result.val += this_result ? 0 : 1;
                 }
             } else if (input.attr('type') && input.attr('type').toLowerCase() === "radio") {
-                if (input.attr('name') === undefined) {
+                attr_name = input.attr('name');
+                if (typeof attr_name  === undefined) {
                     this_result = true;
+                } else {
+                    /*
+                    * Fix with escaped name by nlared https://github.com/nlared
+                    * */
+                    radio_checked = $("input[name=" + attr_name.replace("[", "\\\[").replace("]", "\\\]") + "]:checked"); // eslint-disable-line
+                    this_result = radio_checked.length > 0;
                 }
-
-                var radio_selector = 'input[name=' + input.attr('name') + ']:checked';
-                this_result = $(radio_selector).length > 0;
-
                 if (result !== undefined) {
                     result.val += this_result ? 0 : 1;
                 }
@@ -32590,12 +36367,13 @@ $.noConflict = function() {
             result.val += Utils.exec(o.onBeforeSubmit, [formData], this.elem) === false ? 1 : 0;
 
             if (result.val === 0) {
-                Utils.exec(o.onValidateForm, [formData], form);
-                element.fire("validateform", {
+
+                this._fireEvent("validate-form", {
                     data: formData
                 });
 
                 setTimeout(function(){
+                    // TODO need fix event name to equivalent
                     Utils.exec(o.onSubmit, [formData], form);
                     element.fire("formsubmit", {
                         data: formData
@@ -32603,8 +36381,8 @@ $.noConflict = function() {
                     if (that._onsubmit !==  null) Utils.exec(that._onsubmit, null, form);
                 }, o.submitTimeout);
             } else {
-                Utils.exec(o.onErrorForm, [result.log, formData], form);
-                element.fire("errorform", {
+
+                this._fireEvent("error-form", {
                     log: result.log,
                     data: formData
                 });
@@ -33068,10 +36846,9 @@ $.noConflict = function() {
                         slides.eq(i).remove();
                     }
 
-                    Utils.exec(o.onWalk, [that.current(true)], element[0]);
-                    element.fire('walk', {
+                    that._fireEvent("walk", {
                         slide: that.current(true)
-                    })
+                    });
 
                     that._slideShow();
                 }, 100);
@@ -33098,28 +36875,30 @@ $.noConflict = function() {
         _end: function(){
             this.ended = this.options.autoplay;
             this._timer(false);
-            Utils.exec(this.options.onPlay, [this.current(true)], this.elem);
-            this.element.fire('end', {
+
+            this._fireEvent("end", {
                 slide: this.current(true)
             });
         },
 
         play: function(){
-            if (this.paused) {
-                Utils.exec(this.options.onPlay, [this.current(true)], this.elem);
-                this.element.fire('play', {
-                    slide: this.current(true)
-                });
-                this.paused = false;
-                this.next();
+            if (!this.paused) {
+                return ;
             }
+
+            this._fireEvent("play", {
+                slide: this.current(true)
+            });
+
+            this.paused = false;
+            this.next();
         },
 
         pause: function(){
             this._timer(false);
             this.paused = true;
-            Utils.exec(this.options.onPause, [this.current(true)], this.elem);
-            this.element.fire('pause', {
+
+            this._fireEvent("pause", {
                 slide: this.current(true)
             });
         },
@@ -33149,10 +36928,9 @@ $.noConflict = function() {
 
             this.slide = n - 1;
 
-            Utils.exec(this.options.onJump, [this.current(true)], this.elem);
-            this.element.fire('jump', {
+            this._fireEvent("jump", {
                 slide: this.current(true)
-            });
+            })
 
             this._goto(this.slide);
         },
@@ -33170,8 +36948,7 @@ $.noConflict = function() {
                 this.slide = 0;
             }
 
-            Utils.exec(o.onNext , [this.current(true)], this.elem);
-            this.element.fire('next', {
+            this._fireEvent("next", {
                 slide: this.current(true)
             });
 
@@ -33192,8 +36969,7 @@ $.noConflict = function() {
                 this.slide = this.slides.length - 1;
             }
 
-            Utils.exec(o.onPrev, [this.current(true)], this.elem);
-            this.element.fire('prev', {
+            this._fireEvent("prev", {
                 slide: this.current(true)
             });
 
@@ -33833,6 +37609,77 @@ $.noConflict = function() {
 
 (function(Metro, $) {
     'use strict';
+
+    var Utils = Metro.utils;
+    var ViewportCheckDefaultConfig = {
+        onViewport: Metro.noop,
+        onViewportEnter: Metro.noop,
+        onViewportLeave: Metro.noop,
+        onViewportCheckCreate: Metro.noop
+    };
+
+    Metro.viewportCheckSetup = function (options) {
+        ViewportCheckDefaultConfig = $.extend({}, ViewportCheckDefaultConfig, options);
+    };
+
+    if (typeof window["metroViewportCheckSetup"] !== undefined) {
+        Metro.viewportCheckSetup(window["metroViewportCheckSetup"]);
+    }
+
+    Metro.Component('viewport-check', {
+        init: function( options, elem ) {
+            this._super(elem, options, ViewportCheckDefaultConfig, {
+                // define instance vars here
+                inViewport: false,
+                id: Utils.elementId("viewport-check")
+            });
+            return this;
+        },
+
+        _create: function(){
+            this.inViewport = Utils.inViewport(this.elem);
+
+            this._createEvents();
+
+            this._fireEvent('viewport-check-create');
+        },
+
+        _createEvents: function(){
+            var that = this, elem = this.elem;
+
+            $(window).on(Metro.events.scroll, function(){
+                var oldState = that.inViewport;
+
+                that.inViewport = Utils.inViewport(elem);
+
+                if (oldState !== that.inViewport) {
+                    if (that.inViewport) {
+                        that._fireEvent("viewport-enter");
+                    } else {
+                        that._fireEvent("viewport-leave");
+                    }
+                }
+
+                that._fireEvent("viewport", {
+                    state: that.inViewport
+                });
+            }, {ns: that.id});
+        },
+
+        state: function(){
+            return this.inViewport;
+        },
+
+        destroy: function(){
+            $(window).off(Metro.events.scroll, {ns: this.id});
+
+            return this.element;
+        }
+    });
+}(Metro, m4q));
+
+(function(Metro, $) {
+    'use strict';
     var Utils = Metro.utils;
     var WindowDefaultConfig = {
         windowDeferred: 0,
@@ -33918,6 +37765,7 @@ $.noConflict = function() {
             var that = this, element = this.element, o = this.options;
             var win, overlay;
             var parent = o.dragArea === "parent" ? element.parent() : $(o.dragArea);
+            var _content;
 
             if (o.modal === true) {
                 o.btnMax = false;
@@ -33939,7 +37787,12 @@ $.noConflict = function() {
                     o.content = Utils.exec(o.content);
                 }
 
-                element.append(o.content);
+                _content = $(o.content);
+                if (_content.length === 0) {
+                    element.appendText(o.content);
+                } else {
+                    element.append(_content);
+                }
                 o.content = element;
             }
 
@@ -34045,7 +37898,6 @@ $.noConflict = function() {
             title.appendTo(caption);
 
             if (!Utils.isNull(o.content)) {
-
                 if (Utils.isQ(o.content)) {
                     o.content.appendTo(content);
                 } else {
@@ -34096,6 +37948,12 @@ $.noConflict = function() {
                         .addClass(item.cls)
                         .attr("tabindex", -1)
                         .html(item.html);
+
+                    if (item.attr && typeof item.attr === 'object') {
+                        $.each(item.attr, function(k, v){
+                            customButton.attr($.dashedName(k), v);
+                        });
+                    }
 
                     customButton.data("action", item.onclick);
 
@@ -34194,43 +38052,76 @@ $.noConflict = function() {
                 overlay.addClass("transparent");
             } else {
                 overlay.css({
-                    background: Utils.hex2rgba(o.overlayColor, o.overlayAlpha)
+                    background: Metro.colors.toRGBA(o.overlayColor, o.overlayAlpha)
                 });
             }
 
             return overlay;
         },
 
+        width: function(v){
+            var win = this.win;
+
+            if (!Utils.isValue(v)) {
+                return win.width();
+            }
+
+            win.css("width", parseInt(v));
+
+            return this;
+        },
+
+        height: function(v){
+            var win = this.win;
+
+            if (!Utils.isValue(v)) {
+                return win.height();
+            }
+
+            win.css("height", parseInt(v));
+
+            return this;
+        },
+
         maximized: function(e){
-            var win = this.win,  element = this.element, o = this.options;
+            var win = this.win, o = this.options;
             var target = $(e.currentTarget);
-            win.removeClass("minimized");
-            win.toggleClass("maximized");
-            if (target.hasClass("window-caption")) {
-                Utils.exec(o.onCaptionDblClick, [win[0]], element[0]);
-                element.fire("captiondblclick", {
+
+            if (o.btnMax) {
+                win.removeClass("minimized");
+                win.toggleClass("maximized");
+            }
+
+            if (target.hasClass && target.hasClass("window-caption")) {
+
+                this._fireEvent("caption-dbl-click", {
                     win: win[0]
                 });
+
             } else {
-                Utils.exec(o.onMaxClick, [win[0]], element[0]);
-                element.fire("maxclick", {
+
+                this._fireEvent("max-click", {
                     win: win[0]
                 });
+
             }
         },
 
         minimized: function(){
-            var win = this.win,  element = this.element, o = this.options;
-            win.removeClass("maximized");
-            win.toggleClass("minimized");
-            Utils.exec(o.onMinClick, [win[0]], element[0]);
-            element.fire("minclick", {
+            var win = this.win, o = this.options;
+
+            if (o.btnMin) {
+                win.removeClass("maximized");
+                win.toggleClass("minimized");
+            }
+
+            this._fireEvent("min-click", {
                 win: win[0]
             });
         },
 
         close: function(){
-            var that = this, win = this.win,  element = this.element, o = this.options;
+            var that = this, win = this.win,  o = this.options;
 
             if (Utils.exec(o.onCanClose, [win]) === false) {
                 return false;
@@ -34242,8 +38133,7 @@ $.noConflict = function() {
                 timeout = 500;
             }
 
-            Utils.exec(o.onClose, [win[0]], element[0]);
-            element.fire("close", {
+            this._fireEvent("close", {
                 win: win[0]
             });
 
@@ -34251,17 +38141,15 @@ $.noConflict = function() {
                 if (o.modal === true) {
                     win.siblings(".overlay").remove();
                 }
-                Utils.exec(o.onCloseClick, [win[0]], element[0]);
-                element.fire("closeclick", {
-                    win: win[0]
-                });
 
-                Utils.exec(o.onWindowDestroy, [win[0]], element[0]);
-                element.fire("windowdestroy", {
+                that._fireEvent("close-click", {
                     win: win[0]
                 });
 
                 if (o.closeAction === Metro.actions.REMOVE) {
+                    that._fireEvent("window-destroy", {
+                        win: win[0]
+                    });
                     win.remove();
                 } else {
                     that.hide();
@@ -34271,28 +38159,30 @@ $.noConflict = function() {
         },
 
         hide: function(){
-            var element = this.element, o = this.options;
-            this.win.css({
+            var win = this.win;
+
+            win.css({
                 display: "none"
             });
-            Utils.exec(o.onHide, [this.win[0]], element[0]);
-            element.fire("hide", {
-                win: this.win[0]
+
+            this._fireEvent("hide", {
+                win: win[0]
             });
         },
 
         show: function(){
-            var element = this.element, o = this.options;
+            var win = this.win;
 
-            this.win.removeClass("no-visible");
-            this.win.css({
-                display: "flex"
+            win
+                .removeClass("no-visible")
+                .css({
+                    display: "flex"
+                });
+
+            this._fireEvent("show", {
+                win: win[0]
             });
 
-            Utils.exec(o.onShow, [this.win[0]], element[0]);
-            element.fire("show", {
-                win: this.win[0]
-            });
         },
 
         toggle: function(){
@@ -34313,33 +38203,6 @@ $.noConflict = function() {
 
         max: function(a){
             a ? this.win.addClass("maximized") : this.win.removeClass("maximized");
-        },
-
-        toggleButtons: function(a) {
-            var win = this.win;
-            var btnClose = win.find(".btn-close");
-            var btnMin = win.find(".btn-min");
-            var btnMax = win.find(".btn-max");
-
-            if (a === "data-btn-close") {
-                btnClose.toggle();
-            }
-            if (a === "data-btn-min") {
-                btnMin.toggle();
-            }
-            if (a === "data-btn-max") {
-                btnMax.toggle();
-            }
-        },
-
-        changeSize: function(a){
-            var element = this.element, win = this.win;
-            if (a === "data-width") {
-                win.css("width", element.data("width"));
-            }
-            if (a === "data-height") {
-                win.css("height", element.data("height"));
-            }
         },
 
         changeClass: function(a){
@@ -34402,9 +38265,9 @@ $.noConflict = function() {
             return this.win.find(".window-caption .title").html();
         },
 
-        toggleDraggable: function(){
-            var element = this.element, win = this.win;
-            var flag = JSON.parse(element.attr("data-draggable"));
+        toggleDraggable: function(f){
+            var win = this.win;
+            var flag = Utils.bool(f);
             var drag = Metro.getPlugin(win, "draggable");
             if (flag === true) {
                 drag.on();
@@ -34413,9 +38276,9 @@ $.noConflict = function() {
             }
         },
 
-        toggleResizable: function(){
-            var element = this.element, win = this.win;
-            var flag = JSON.parse(element.attr("data-resizable"));
+        toggleResizable: function(f){
+            var win = this.win;
+            var flag = Utils.bool(f);
             var resize = Metro.getPlugin(win, "resizable");
             if (flag === true) {
                 resize.on();
@@ -34426,49 +38289,97 @@ $.noConflict = function() {
             }
         },
 
-        changeTopLeft: function(a){
-            var element = this.element, win = this.win;
-            var pos;
-            if (a === "data-top") {
-                pos = parseInt(element.attr("data-top"));
-                if (!isNaN(pos)) {
-                    return ;
-                }
-                win.css("top", pos);
-            }
-            if (a === "data-left") {
-                pos = parseInt(element.attr("data-left"));
-                if (!isNaN(pos)) {
-                    return ;
-                }
-                win.css("left", pos);
-            }
-        },
-
         changePlace: function (p) {
             var element = this.element, win = this.win;
             var place = Utils.isValue(p) ? p : element.attr("data-place");
             win.addClass(place);
         },
 
-        changeAttribute: function(attributeName){
-            switch (attributeName) {
+        pos: function(top, left){
+            var win = this.win;
+            win.css({
+                top: top,
+                left: left
+            });
+            return this;
+        },
+
+        top: function(v){
+            this.win.css({
+                top: v
+            });
+            return this;
+        },
+
+        left: function(v){
+            this.win.css({
+                left: v
+            });
+            return this;
+        },
+
+        changeAttribute: function(attr, value){
+            var changePos = function(a, v){
+                var win = this.win;
+                var pos;
+                if (a === "data-top") {
+                    pos = parseInt(v);
+                    if (!isNaN(pos)) {
+                        return ;
+                    }
+                    win.css("top", pos);
+                }
+                if (a === "data-left") {
+                    pos = parseInt(v);
+                    if (!isNaN(pos)) {
+                        return ;
+                    }
+                    win.css("left", pos);
+                }
+            };
+
+            var toggleButtons = function(a, v) {
+                var win = this.win;
+                var btnClose = win.find(".btn-close");
+                var btnMin = win.find(".btn-min");
+                var btnMax = win.find(".btn-max");
+                var _v = Utils.bool(v);
+                var func = _v ? "show" : "hide";
+
+                switch (a) {
+                    case "data-btn-close": btnClose[func](); break;
+                    case "data-btn-min": btnMin[func](); break;
+                    case "data-btn-max": btnMax[func](); break;
+                }
+            };
+
+            var changeSize = function(a, v){
+                var win = this.win;
+                if (a === "data-width") {
+                    win.css("width", +v);
+                }
+                if (a === "data-height") {
+                    win.css("height", +v);
+                }
+            };
+
+            switch (attr) {
                 case "data-btn-close":
                 case "data-btn-min":
-                case "data-btn-max": this.toggleButtons(attributeName); break;
+                case "data-btn-max": toggleButtons(attr, value); break;
                 case "data-width":
-                case "data-height": this.changeSize(attributeName); break;
+                case "data-height": changeSize(attr, value); break;
                 case "data-cls-window":
                 case "data-cls-caption":
-                case "data-cls-content": this.changeClass(attributeName); break;
+                case "data-cls-content": this.changeClass(attr); break;
                 case "data-shadow": this.toggleShadow(); break;
                 case "data-icon": this.setIcon(); break;
                 case "data-title": this.setTitle(); break;
                 case "data-content": this.setContent(); break;
-                case "data-draggable": this.toggleDraggable(); break;
-                case "data-resizable": this.toggleResizable(); break;
+                case "data-draggable": this.toggleDraggable(value); break;
+                case "data-resizable": this.toggleResizable(value); break;
                 case "data-top":
-                case "data-left": this.changeTopLeft(attributeName); break;
+                case "data-left": changePos(attr, value); break;
                 case "data-place": this.changePlace(); break;
             }
         },
@@ -34534,15 +38445,49 @@ $.noConflict = function() {
             Metro.getPlugin(el, "window").close();
         },
 
-        create: function(options){
+        pos: function(el, top, left){
+            if (!this.isWindow(el)) {
+                return false;
+            }
+            Metro.getPlugin(el, "window").pos(top, left);
+        },
+
+        top: function(el, top){
+            if (!this.isWindow(el)) {
+                return false;
+            }
+            Metro.getPlugin(el, "window").top(top);
+        },
+
+        left: function(el, left){
+            if (!this.isWindow(el)) {
+                return false;
+            }
+            Metro.getPlugin(el, "window").left(left);
+        },
+
+        width: function(el, width){
+            if (!this.isWindow(el)) {
+                return false;
+            }
+            Metro.getPlugin(el, "window").width(width);
+        },
+
+        height: function(el, height){
+            if (!this.isWindow(el)) {
+                return false;
+            }
+            Metro.getPlugin(el, "window").height(height);
+        },
+
+        create: function(options, parent){
             var w;
 
-            w = $("<div>").appendTo($("body"));
+            w = $("<div>").appendTo(parent ? $(parent) : $("body"));
 
-            var w_options = $.extend({}, {
-            }, (options !== undefined ? options : {}));
-
-            w_options._runtime = true;
+            var w_options = $.extend({
+                _runtime: true
+            }, (options ? options : {}));
 
             return Metro.makePlugin(w, "window", w_options);
         }
@@ -34656,14 +38601,13 @@ $.noConflict = function() {
         },
 
         _createEvents: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
 
             element.on(Metro.events.click, ".wizard-btn-help", function(){
                 var pages = element.children("section");
                 var page = pages.get(that.current - 1);
 
-                Utils.exec(o.onHelpClick, [that.current, page, element[0]]);
-                element.fire("helpclick", {
+                that._fireEvent("help-click", {
                     index: that.current,
                     page: page
                 });
@@ -34673,8 +38617,8 @@ $.noConflict = function() {
                 that.prev();
                 var pages = element.children("section");
                 var page = pages.get(that.current - 1);
-                Utils.exec(o.onPrevClick, [that.current, page], element[0]);
-                element.fire("prevclick", {
+
+                that._fireEvent("prev-click", {
                     index: that.current,
                     page: page
                 });
@@ -34684,8 +38628,8 @@ $.noConflict = function() {
                 that.next();
                 var pages = element.children("section");
                 var page = pages.get(that.current - 1);
-                Utils.exec(o.onNextClick, [that.current, page], element[0]);
-                element.fire("nextclick", {
+
+                that._fireEvent("next-click", {
                     index: that.current,
                     page: page
                 });
@@ -34694,8 +38638,8 @@ $.noConflict = function() {
             element.on(Metro.events.click, ".wizard-btn-finish", function(){
                 var pages = element.children("section");
                 var page = pages.get(that.current - 1);
-                Utils.exec(o.onFinishClick, [that.current, page], element[0]);
-                element.fire("finishclick", {
+
+                that._fireEvent("finish-click", {
                     index: that.current,
                     page: page
                 });
@@ -34725,8 +38669,8 @@ $.noConflict = function() {
             this.toPage(this.current);
 
             page = $(element.children("section").get(this.current - 1));
-            Utils.exec(o.onNextPage, [this.current, page[0]], element[0]);
-            element.fire("nextpage", {
+
+            this._fireEvent("next-page", {
                 index: that.current,
                 page: page[0]
             });
@@ -34745,37 +38689,36 @@ $.noConflict = function() {
             this.toPage(this.current);
 
             page = $(element.children("section").get(this.current - 1));
-            Utils.exec(o.onPrevPage, [this.current, page[0]], element[0]);
-            element.fire("prevpage", {
+
+            this._fireEvent("prev-page", {
                 index: that.current,
                 page: page[0]
             });
         },
 
         last: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
             var page;
 
             this.toPage(element.children("section").length);
 
             page = $(element.children("section").get(this.current - 1));
-            Utils.exec(o.onLastPage, [this.current, page[0]], element[0]);
-            element.fire("lastpage", {
+
+            this._fireEvent("last-page", {
                 index: that.current,
                 page: page[0]
             });
-
         },
 
         first: function(){
-            var that = this, element = this.element, o = this.options;
+            var that = this, element = this.element;
             var page;
 
             this.toPage(1);
 
             page = $(element.children("section").get(0));
-            Utils.exec(o.onFirstPage, [this.current, page[0]], element[0]);
-            element.fire("firstpage", {
+
+            this._fireEvent("first-page", {
                 index: that.current,
                 page: page[0]
             });
@@ -34821,8 +38764,8 @@ $.noConflict = function() {
             }
 
             if (parseInt(o.finish) > 0 && this.current === parseInt(o.finish)) {
-                Utils.exec(o.onFinishPage, [this.current, target[0]], element[0]);
-                element.fire("finishpage", {
+
+                this._fireEvent("finish-page", {
                     index: this.current,
                     page: target[0]
                 });
@@ -34836,8 +38779,7 @@ $.noConflict = function() {
                 prev.removeClass("disabled");
             }
 
-            Utils.exec(o.onPage, [this.current, target[0]], element[0]);
-            element.fire("page", {
+            this._fireEvent("page", {
                 index: this.current,
                 page: target[0]
             });
