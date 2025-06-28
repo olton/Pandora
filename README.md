@@ -1,4 +1,8 @@
 <p align="center">
+    This project is no longer maintained. The next -  [Panda Templates](https://panda.metroui.org.ua)
+</p>
+
+<p align="center">
   <a href="https://metroui.org.ua/themes/pandora">
     <img src="https://user-images.githubusercontent.com/365108/56853343-eef5a980-692e-11e9-8613-b7e42a913383.jpg" alt="">
   </a>
