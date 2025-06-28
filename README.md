@@ -1,5 +1,5 @@
 <p align="center">
-This project is no longer maintained. The next -  [Panda Templates](https://panda.metroui.org.ua)
+This project is no longer maintained. The next - <a href="https://panda.metroui.org.ua">Panda Templates</a>
 </p>
 
 <hr>
