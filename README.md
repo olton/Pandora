@@ -1,6 +1,8 @@
 <p align="center">
-    This project is no longer maintained. The next -  [Panda Templates](https://panda.metroui.org.ua)
+This project is no longer maintained. The next -  [Panda Templates](https://panda.metroui.org.ua)
 </p>
+
+<hr>
 
 <p align="center">
   <a href="https://metroui.org.ua/themes/pandora">
